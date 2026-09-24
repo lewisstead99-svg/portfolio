@@ -1,7 +1,7 @@
 # HOLM — darkroom product editorial
 
 A single-page product editorial for **HOLM**, a (fictional) hand-turned solid walnut valet tray.
-One object floating in warm darkness, cream typography the only decoration.
+One object floating in warm darkness, cream typography the only decoration. A [Fabricatr](https://fabricatr.com) portfolio piece.
 
 It is a portfolio study of the visual system used on [oryzo.ai](https://oryzo.ai) (designed by Lusion),
 rebuilt from the ground up around an original product, with original copy, and with the object rendered

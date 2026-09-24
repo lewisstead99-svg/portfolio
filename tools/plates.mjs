@@ -45,7 +45,7 @@ try {
   page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts?.ready);
-  await page.waitForTimeout(1500); await frames(page, 6);
+  await page.waitForTimeout(2200); await frames(page, 6);
   await page.screenshot({ path: out('og.jpg'), type: 'jpeg', quality: 84 });
   await page.close();
   console.log('plates written to assets/img/: plate-hero.jpg, plate-void.png, og.jpg');

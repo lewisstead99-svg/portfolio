@@ -251,6 +251,13 @@ section { position: relative; min-height: var(--vh); }
 .legal { font-family: var(--font-legal); font-size: var(--text-legal); line-height: var(--leading-legal); max-width: 60ch; }
 
 /* --------------------------------------------------------------------------
+   Entrance — hero elements rise in once the first frame has rendered
+   -------------------------------------------------------------------------- */
+.rise { opacity: 0; transform: translateY(12px); transition: opacity .9s cubic-bezier(.2,.6,.2,1), transform .9s cubic-bezier(.2,.6,.2,1); transition-delay: calc(var(--i, 0) * 120ms); }
+.is-ready .rise { opacity: 1; transform: none; }
+.no-webgl .rise { opacity: 1; transform: none; transition: none; }
+
+/* --------------------------------------------------------------------------
    Fallbacks — no WebGL: static plates rendered from the same scene
    -------------------------------------------------------------------------- */
 .no-webgl .scene { display: none; }
@@ -290,5 +297,6 @@ section { position: relative; min-height: var(--vh); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero__scroll, .skip { transition: none; }
+  .hero__scroll, .skip, .rise { transition: none; }
+  .rise { opacity: 1; transform: none; }
 }

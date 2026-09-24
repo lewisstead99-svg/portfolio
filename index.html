@@ -22,7 +22,7 @@
   <!-- One WebGL scene renders the tray for the whole page: it starts as a top-down "photograph" and lifts into the void as you scroll. -->
   <canvas id="scene" class="scene" aria-hidden="true"></canvas>
 
-  <header class="nav" id="nav">
+  <header class="nav rise" style="--i:1" id="nav">
     <a class="nav__brand" href="#top">HOLM</a>
     <nav class="nav__links" aria-label="Sections">
       <a href="#intro">Intro</a>
@@ -38,18 +38,18 @@
 
     <!-- HERO — photographic mode: the tray on a cutting mat with the tools of the craft -->
     <section class="hero" id="top" data-anchor="0" data-scene="hero">
-      <div class="hero__lockup">
+      <div class="hero__lockup rise" style="--i:0">
         <p class="hero__tag">Made for keys, built for desks.</p>
         <h1 class="wordmark">HOLM</h1>
       </div>
 
-      <div class="card hero__card">
-        <h2 class="card__heading">Designed by Headscratch, a brand studio for premium property and product.</h2>
+      <div class="card hero__card rise" style="--i:2">
+        <h2 class="card__heading">Designed by Fabricatr, the studio that builds products worth looking at.</h2>
         <hr class="rule">
         <p class="card__body">A concept editorial built as a portfolio piece. One object, warm darkness, cream type. The tray is rendered live in your browser. Scroll, and it lifts off the desk.</p>
       </div>
 
-      <button class="card thumb" type="button" id="spin" aria-pressed="false" aria-label="Turntable: spin the tray">
+      <button class="card thumb rise" style="--i:3" type="button" id="spin" aria-pressed="false" aria-label="Turntable: spin the tray">
         <span class="thumb__mark">HOLM</span>
         <svg class="thumb__play" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true" focusable="false">
           <circle cx="24" cy="24" r="23" fill="none" stroke="currentColor" stroke-width="1"/>
@@ -59,7 +59,7 @@
         <span class="thumb__label"><span class="thumb__on">Stop</span><span class="thumb__off">Turntable</span></span>
       </button>
 
-      <p class="hero__scroll" aria-hidden="true">Scroll</p>
+      <p class="hero__scroll rise" style="--i:4" aria-hidden="true">Scroll</p>
     </section>
 
     <hr class="divider">
@@ -144,10 +144,10 @@
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right credits">
-          <p class="credit"><span class="credit__label">Built by</span> <a class="credit__link" href="https://github.com/lewisstead99-svg" rel="author">Headscratch</a></p>
-          <a class="btn btn--filled" href="https://github.com/lewisstead99-svg/portfolio">Visit the studio</a>
-          <p class="colophon">A portfolio piece by Lewis Stead, 2026.<br>A study of the visual system used on oryzo.ai, designed by Lusion, rebuilt around an original product.</p>
-          <p class="legal">* Holm is a fictional product created for portfolio purposes. Type set in Inter in place of Halyard Display. Object rendered with three.js.</p>
+          <p class="credit"><span class="credit__label">Built by</span> <a class="credit__link" href="https://fabricatr.com" rel="author">Fabricatr</a></p>
+          <a class="btn btn--filled" href="https://fabricatr.com">Visit Fabricatr</a>
+          <p class="colophon">A Fabricatr portfolio piece, 2026.<br>A study of the visual system used on oryzo.ai, designed by Lusion, rebuilt around an original product.</p>
+          <p class="legal">* Holm is a fictional product created for portfolio purposes. Type set in Inter in place of Halyard Display. Object rendered live with three.js.</p>
         </div>
       </div>
     </section>

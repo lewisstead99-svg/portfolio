@@ -81,6 +81,9 @@ scene?.resize(innerWidth, innerHeight, Math.min(devicePixelRatio || 1, 2));
 current = target = progressFor(scrollY);
 scene?.setProgress(current);
 scene?.start();
+// Reveal the hero once the first frame is on screen (immediately when there is no scene to wait for).
+if (scene) requestAnimationFrame(() => requestAnimationFrame(() => html.classList.add('is-ready')));
+else html.classList.add('is-ready');
 addEventListener('scroll', onScroll, { passive: true });
 addEventListener('resize', onResize);
 addEventListener('load', onResize);
