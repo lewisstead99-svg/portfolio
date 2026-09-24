@@ -749,12 +749,11 @@ export function createScene(canvas, options = {}) {
     // The tray is the thread through the whole page, so nothing ever hides it: it perches above the gallery,
     // becomes the O in HOLM (dynamic: the page passes the letter's on-screen rect), floats over the cream
     // ground of the longevity section and sits inside the cream tile of "Always on".
-    perch:  { elev: 89.5, width: 0.085, nx: 0, ny: 0.86, pwidth: 0.13, pnx: 0.62, pny: 0.72 },   // portrait: beside the kicker, above the plates
     light:  { elev: 34,   dynamic: true },   // pinned to a layout slot in the longevity hero so it scrolls with its text
     letterO:{ elev: 89.5, dynamic: true },
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
-    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0, pointerYaw: 22, pointerElev: 5, raw: true },   // the pointer sweeps along the rim; width passes through untouched
+    macro:  { elev: 12,   width: 0.88, nx: 0, ny: -0.38, pwidth: 1.3, pnx: 0.05, pny: -0.30, pointerYaw: 22, pointerElev: 5 },   // grain level in the lower third; the pointer sweeps along the rim
     quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.40, pnx: 0.70, pny: 0.62 },   // portrait: the reviews stack over the centre, so the tray sits top-right
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
@@ -772,6 +771,7 @@ export function createScene(canvas, options = {}) {
 
   function targetView(p, out) {
     out.elev = track(K.elev, p); out.yaw = track(K.yaw, p); out.width = track(widthKeys, p);
+    if (aspect < 1) out.width = Math.min(out.width * 1.75, 0.72);              // portrait: the tray owns the width
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
     out.still = 0;
     if (blend.a || blend.b) {
@@ -793,7 +793,7 @@ export function createScene(canvas, options = {}) {
     const portrait = aspect < 1;
     if (o.dynamic) { const fo = focus[name] || { nx: 0, ny: 0, width: 0.2 }; dst.width = fo.width; dst.nx = fo.nx; dst.ny = fo.ny; }
     else {
-      dst.width = portrait && o.pwidth != null ? o.pwidth / 1.75 : o.width;   // pre-compensates the portrait multiplier
+      dst.width = portrait ? (o.pwidth != null ? o.pwidth : Math.min(o.width * 1.75, 0.72)) : o.width;
       dst.nx = portrait && o.pnx != null ? o.pnx : o.nx; dst.ny = portrait && o.pny != null ? o.pny : o.ny;
     }
     return dst;
@@ -803,8 +803,7 @@ export function createScene(canvas, options = {}) {
   const sph = (out, az, el, d) => out.set(target.x + d * Math.cos(el) * Math.sin(az), target.y + d * Math.sin(el), target.z + d * Math.cos(el) * Math.cos(az));
 
   function applyCamera(v) {
-    let frac = v.width;
-    if (aspect < 1 && frac <= 1) frac = Math.min(frac * 1.75, 0.72);   // portrait: the tray owns the width (macro shots pass through)
+    const frac = v.width;                                     // already a screen fraction (portrait sizing is applied in target space)
     const tanH = Math.tan(FOV / 2 * DEG);
     const dist = TRAY_D / (frac * aspect * 2 * tanH);
     const el = clamp(v.elev, -60, 89.5) * DEG, yaw = v.yaw * DEG;
@@ -984,9 +983,8 @@ export function createScene(canvas, options = {}) {
     getAge() { return ageT; },
     // Interaction ---------------------------------------------------------------------------------------
     getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: cur.vd > 0.5 }; },
-    // Screen-space target for a dynamic view: centre (css px) and diameter (css px). Pre-compensated for the
-    // portrait multiplier so the diameter lands exactly.
-    setFocus(name, x, y, d) { focus[name] = { nx: (x / W - 0.5) * 2, ny: -(y / H - 0.5) * 2, width: clamp(d / W, 0.02, 1) / (aspect < 1 ? 1.75 : 1) }; requestRender(); },
+    // Screen-space target for a dynamic view: centre (css px) and diameter (css px), landed exactly.
+    setFocus(name, x, y, d) { focus[name] = { nx: (x / W - 0.5) * 2, ny: -(y / H - 0.5) * 2, width: clamp(d / W, 0.02, 1.6) }; requestRender(); },
     // Cream grounds behind the tray, as css-px rects {top, bottom, left?, right?}; pass [] to clear.
     setBackdrops(list) { backdrops.length = 0; for (const b of (list || []).slice(0, 2)) if (b && b.bottom > b.top) backdrops.push(b); requestRender(); },
     dragStart() { drag.active = true; drag.vYaw = 0; drag.vElev = 0; requestRender(); },

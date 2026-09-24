@@ -199,7 +199,6 @@ section { position: relative; min-height: var(--vh); }
 
 /* Gallery: pinned 200vh; the headline rolls, then the track slides */
 .gallery { height: 220vh; }
-.gallery__marker { position: absolute; top: 122vh; left: 0; width: 1px; height: 1px; pointer-events: none; }   /* its top crossing the centre lifts the tray out of the photograph as the plates slide */
 .gallery__pin { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .gallery__kicker { position: absolute; left: var(--gutter); top: 9%; z-index: 3; display: flex; flex-direction: column; gap: var(--spacing-8); opacity: 0; transition: opacity .5s var(--ease-out); }
 .gallery__small { font-size: var(--text-subheading); text-transform: none; font-weight: var(--weight-medium); }
@@ -287,6 +286,8 @@ section { position: relative; min-height: var(--vh); }
 .flip__on { display: none; } .flip__off { display: inline; }
 [aria-pressed="true"] .flip__on { display: inline; } [aria-pressed="true"] .flip__off { display: none; }
 .macro .beat__head { position: relative; z-index: 1; }
+/* The friction card sits bottom-left over the wood like a specimen label; the heading keeps the void above. */
+.macro .beat__foot { position: absolute; left: var(--gutter); bottom: var(--spacing-24); align-items: flex-start; }
 .spec { width: min(300px, 100%); padding: var(--spacing-12) var(--spacing-14); display: flex; flex-direction: column; gap: var(--spacing-10); text-align: left; font-size: var(--text-2xs); }
 .spec__row { display: flex; justify-content: space-between; gap: var(--spacing-12); }
 .spec__row--s { font-family: var(--font-legal); font-size: var(--text-legal); }
@@ -459,6 +460,8 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .letters__row { font-size: 24vw; }
   .beat { padding: 96px var(--edge) 40px var(--gutter); grid-template-rows: auto minmax(44vh, 1fr) auto; }
   .beat__stage { min-height: 44vh; }
+  .macro .beat__foot { left: var(--gutter); right: var(--edge); bottom: var(--spacing-18); }
+  .macro .spec { width: 100%; }
   .light__side { display: none; }
   .light__slot { right: 5%; top: 14%; width: 32vw; height: 32vw; }
   .strip { grid-template-columns: 1fr; }

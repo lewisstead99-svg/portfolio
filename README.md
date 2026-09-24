@@ -16,7 +16,7 @@ The page follows the beat structure of the reference site, section for section, 
 | 00 | Hero | Top-down "photograph": the tray on a cutting mat with pencils, craft knife, brass ruler and paperclip. Wordmark upper-left, copy over the photo, info card, turntable card, scroll cue, right-edge progress bar. |
 | 01 | Intro | The mat falls away, scattered letters drift past, the tray tumbles through the void and rests at 3/4 between heading and body. |
 | 02 | Statement | "Made by hand." types itself in, ember model tag, top-down tray with dashed callouts, view pills. |
-| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of six plates slides through. The tray perches small above them. |
+| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of six plates slides through. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
 | 04 | Features | Pinned split: frosted panel with icon, label, copy and heading; the tray re-angles for each beat (lip, underside, top) with a dimension, a gauge and a serif formula. |
 | 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
@@ -30,9 +30,10 @@ The page follows the beat structure of the reference site, section for section, 
 - **Scroll-linked flights.** Every hand-over between beats is a blend driven by scroll position, not a
   threshold: as the next section's top edge crosses its line the camera travels from the previous view to
   the next over half a viewport, so the tray moves with the page and never hops. In the gallery it dives
-  into the photograph and sits exactly on the printed tray, then lifts out as the plates begin to slide.
+  into the photograph and sits exactly on the printed tray, rides it left as the plates slide, and holds at the
+  left edge with a sliver showing rather than leaving the frame.
 - **One continuous object.** A single Three.js scene renders the tray for the whole page and it is never
-  hidden: every section has a place for it, and it flies between them. Sections either read the scroll
+  hidden: every section has a place for it, and it flies between them along the scroll. Sections either read the scroll
   position through keyframes or ask for a named camera preset; two presets are pinned to DOM rects (the O,
   the cream tile) and one to a layout slot, so the tray scrolls with the words around it. The page resolves
   which preset wins (product pills, then feature beats, then the section's own). Section state is read from

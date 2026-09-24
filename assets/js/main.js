@@ -264,8 +264,6 @@ const beats = [];
 document.querySelectorAll('main > section').forEach(sec => {
   if (sec.id === 'features') { markers.forEach((m, i) => beats.push({ el: i === 0 ? sec : m, view: () => m.dataset.view || null, own: i === 0 ? 0.55 : 0.5 })); return; }   // the first beat is owned by the section itself, so the blend begins as the panel scrolls in
   beats.push({ el: sec, view: () => sec.dataset.view || null, own: Number(sec.dataset.own || 0.5) });
-  const extra = sec.querySelector('.gallery__marker');
-  if (extra) beats.push({ el: extra, view: () => extra.dataset.view || null, own: 0.5 });
 });
 const navLinksById = byId;
 const lightEl = document.querySelector('.light');
@@ -295,7 +293,9 @@ function trackSections() {
   featureView = featuresActive ? domView : null;
   // Rect-pinned views: where the printed tray sits in the photograph, the O of HOLM, the longevity slot, the live tile.
   if (scene) {
-    if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(); scene.setFocus('photo', r.left + photoFrac[0] * r.width, r.top + photoFrac[1] * r.height, photoFrac[2] * r.width); }
+    // The tray rides the photograph as the plates slide and holds at the left edge with a sliver still showing, so it
+    // never fully leaves the frame and never sits doubled over another plate's printed tray.
+    if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.2 * d), r.top + photoFrac[1] * r.height, d); }
     if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.84); }
     if (lightSlot) { const r = lightSlot.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.96); }
     if (liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus('tile', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
@@ -308,7 +308,7 @@ function trackSections() {
     scene.setBackdrops(grounds);
   }
   // In the gallery the tray is drawn in front of the page so it can sit on the photograph.
-  html.classList.toggle('is-front', domView === 'photo' || domView === 'perch');
+  html.classList.toggle('is-front', domView === 'photo');
   applyOverride(animateNext); animateNext = false;
   const nav = dom.el.closest('[data-nav]')?.dataset.nav || null;
   if (nav !== navActive) {
