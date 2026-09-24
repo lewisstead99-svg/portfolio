@@ -60,7 +60,7 @@ try {
     await page.waitForTimeout(1800); await frames(4);
     for (const p of at) {
       await page.evaluate(p => window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * p), p);
-      await page.waitForTimeout(900); await frames(6);
+      await page.waitForTimeout(1400); await frames(6);
       await page.screenshot({ path: path.join(out, `s${String(p).replace('.', '_')}.png`) });
     }
   }

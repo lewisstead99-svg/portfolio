@@ -37,8 +37,12 @@ function measure() {
   const maxY = Math.max(1, html.scrollHeight - innerHeight);
   anchors = sections.map((s, i) => {
     const p = Number(s.dataset.anchor);
-    // The hero anchors at the very top; the others anchor when the section is centred in the viewport.
-    const y = i === 0 ? 0 : clamp(s.offsetTop + s.offsetHeight / 2 - innerHeight / 2, 0, maxY);
+    // The hero anchors at the very top. Every other section anchors when its object slot (the middle grid
+    // cell, or the spacer between heading and body on small screens) is centred in the viewport, so the
+    // tray rests exactly where the layout leaves room for it.
+    const slot = s.querySelector('.reveal__object') || s;
+    const r = slot.getBoundingClientRect();
+    const y = i === 0 ? 0 : clamp(scrollY + r.top + r.height / 2 - innerHeight / 2, 0, maxY);
     return { y, p };
   });
   // Guarantee monotonic y so interpolation is well-defined.
@@ -55,16 +59,18 @@ function progressFor(y) {
   return anchors[anchors.length - 1].p;
 }
 
-let target = 0, current = 0, raf = 0;
+let target = 0, current = 0, raf = 0, last = 0;
 function onScroll() {
   target = progressFor(scrollY);
   html.classList.toggle('is-scrolled', scrollY > 24);
-  if (!raf) raf = requestAnimationFrame(tick);
+  if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
 }
-function tick() {
+function tick(now) {
   raf = 0;
-  // Ease towards the scroll target; reduced motion follows it exactly.
-  current = reducedMotion ? target : current + (target - current) * 0.14;
+  // Ease towards the scroll target with a time constant (~110ms), so the feel is identical at any frame rate.
+  // Reduced motion follows the scroll exactly.
+  const dt = Math.min(250, now - last); last = now;
+  current = reducedMotion ? target : current + (target - current) * (1 - Math.exp(-dt / 110));
   if (Math.abs(target - current) < 0.0005) current = target;
   scene?.setProgress(current);
   if (current !== target) raf = requestAnimationFrame(tick);
