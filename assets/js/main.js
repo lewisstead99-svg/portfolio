@@ -100,6 +100,7 @@ function onScroll() {
     thumb.style.transform = `translateY(${(scrollY / total) * innerHeight}px)`;
   }
   layoutGallery();
+  trackSections();
   if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
 }
 function tick(now) {
@@ -181,23 +182,11 @@ if (scene && !reducedMotion && matchMedia('(pointer: fine)').matches) {
   }), { threshold: 0.2 });
   els.forEach(el => io.observe(el));
   if (reducedMotion) els.forEach(el => el.classList.add('in'));
-  const light = document.querySelector('.light');
-  if (light) new IntersectionObserver(([e]) => html.classList.toggle('is-light', e.isIntersecting), { rootMargin: '-8% 0px -85% 0px', threshold: 0 }).observe(light);
 }
 
-// --- Nav: mark the section in view -------------------------------------------------------------------
+// --- Nav links (state is set by trackSections below) ------------------------------------------------
 const navLinks = [...document.querySelectorAll('.nav__links a')];
 const byId = Object.fromEntries(navLinks.map(a => [a.getAttribute('href').slice(1), a]));
-{
-  let active = null;
-  const io = new IntersectionObserver(entries => {
-    const hit = entries.filter(e => e.isIntersecting)[0];
-    if (hit) active = hit.target.dataset.nav;
-    navLinks.forEach(a => a.removeAttribute('aria-current'));
-    if (active && byId[active]) byId[active].setAttribute('aria-current', 'true');
-  }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
-  document.querySelectorAll('[data-nav]').forEach(s => io.observe(s));
-}
 
 // --- Camera overrides: one resolver for section presets, feature beats and the product pills -----------
 let sectionEl = null, featureView = null, featuresActive = false, pillView = null, pillsActive = false;
@@ -208,34 +197,20 @@ let applyOverride = function () {
     : null;
   scene?.setViewOverride(view);
 };
-{
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) sectionEl = e.target;
-      else if (sectionEl === e.target) sectionEl = null;
-    });
-    applyOverride();
-  }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
-  document.querySelectorAll('section[data-view]').forEach(s => io.observe(s));
-}
 
 // Pinned features.
 const markers = [...document.querySelectorAll('.pin-marker')];
 const steps = [...document.querySelectorAll('.step')];
 const gotoButtons = [...document.querySelectorAll('[data-goto]')];
 function setStep(n) {
+  currentStep = String(n);
   steps.forEach(s => s.classList.toggle('is-active', s.dataset.step === String(n)));
   gotoButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.goto === String(n))));
   featureView = markers.find(m => m.dataset.step === String(n))?.dataset.view || null;
   applyOverride();
 }
+let currentStep = '1';
 if (markers.length) {
-  const io = new IntersectionObserver(entries => {
-    const hit = entries.filter(e => e.isIntersecting)[0];
-    if (hit) setStep(hit.target.dataset.step);
-  }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
-  markers.forEach(m => io.observe(m));
-  new IntersectionObserver(([e]) => { featuresActive = e.isIntersecting; applyOverride(); }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 }).observe(document.getElementById('features'));
   // The ageing gauge follows the scene's darkening cycle while beat 3 is on.
   const marker = document.getElementById('ageMarker');
   let ageRaf = 0;
@@ -268,6 +243,49 @@ flipButton?.addEventListener('click', () => {
   flipSection.dataset.view = on ? (flipSection.dataset.flipView || 'flip') : 'flipTop';
   applyOverride();
 });
+
+// --- Centre-line tracking ----------------------------------------------------------------------------
+// Which section owns the camera, which feature beat is on, which nav item is current and whether the light
+// interlude sits under the nav are all read from geometry on every scroll. (IntersectionObserver rootMargin
+// is ignored inside cross-origin iframes, and this page may well be embedded in one.)
+const viewSections = [...document.querySelectorAll('section[data-view]')];
+const navSections = [...document.querySelectorAll('[data-nav]')];
+const featuresEl = document.getElementById('features');
+const lightEl = document.querySelector('.light');
+const letterO = document.querySelector('.letters__o');
+const liveTile = document.querySelector('.always__tile--live');
+const lightSlot = document.querySelector('.light__slot');
+let navActive = null;
+function trackSections() {
+  const mid = innerHeight / 2;
+  const at = el => { const r = el.getBoundingClientRect(); return r.top <= mid && r.bottom > mid; };
+  sectionEl = viewSections.find(at) || null;
+  featuresActive = !!featuresEl && at(featuresEl);
+  if (featuresActive) { const m = markers.find(at); if (m && m.dataset.step !== currentStep) setStep(m.dataset.step); }
+  // Dynamic presets follow a DOM rect: the O of HOLM, and the cream tile in "Always on".
+  if (scene) {
+    if (sectionEl?.id === 'letters' && letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, r.width * 0.84); }
+    else if (sectionEl?.id === 'always' && liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
+    else if (sectionEl?.id === 'longevity' && lightSlot) { const r = lightSlot.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.96); }
+    // Cream grounds the scene paints behind the tray, aligned to the DOM rects they stand in for.
+    const grounds = [];
+    for (const el of [lightEl, liveTile]) {
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (r.bottom > 0 && r.top < innerHeight) grounds.push(el === liveTile ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right } : { top: r.top, bottom: r.bottom });
+    }
+    scene.setBackdrops(grounds);
+  }
+  applyOverride();
+  const nav = navSections.find(at)?.dataset.nav || null;
+  if (nav !== navActive) {
+    navActive = nav;
+    navLinks.forEach(a => a.removeAttribute('aria-current'));
+    if (nav && byId[nav]) byId[nav].setAttribute('aria-current', 'true');
+  }
+  if (lightEl) { const r = lightEl.getBoundingClientRect(); html.classList.toggle('is-light', r.top <= innerHeight * 0.15 && r.bottom > innerHeight * 0.08); }
+}
+trackSections();
 
 // --- Typed statement ----------------------------------------------------------------------------------
 {

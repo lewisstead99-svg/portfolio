@@ -696,6 +696,16 @@ export function createScene(canvas, options = {}) {
   let lastProgress = 0;
   const bounds = { x: 0, y: 0, r: 0 };
   const _proj = new THREE.Vector3();
+  const focus = { nx: 0, ny: 0, width: 0.2 };                  // screen-space target for dynamic presets (css px → fractions)
+  // Backdrops: cream grounds the scene paints behind the tray, pixel-aligned to DOM rects the page passes in
+  // (the longevity section, the live tile). Camera-attached planes just beyond the tray, unlit and untouched
+  // by tone mapping so they match the page's #ffedd7 exactly.
+  const backdrops = [];
+  const backdropMeshes = [0, 1].map(() => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xffedd7, toneMapped: false, fog: false }));
+    m.visible = false; m.frustumCulled = false; camera.add(m); return m;
+  });
+  scene.add(camera);
 
   /* ------------------------------------------------------------ choreography */
 
@@ -728,9 +738,15 @@ export function createScene(canvas, options = {}) {
     flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0 },
     flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0 },
     statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0 },
-    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0, pointerYaw: 22, pointerElev: 5 },   // the pointer sweeps along the rim
-    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, phide: true },   // portrait: the reviews stack over the centre, so the tray steps out
-    away:   { elev: 89.5, width: 0.30, nx: 0, ny: 0, hide: true },
+    // The tray is the thread through the whole page, so nothing ever hides it: it perches above the gallery,
+    // becomes the O in HOLM (dynamic: the page passes the letter's on-screen rect), floats over the cream
+    // ground of the longevity section and sits inside the cream tile of "Always on".
+    perch:  { elev: 89.5, width: 0.085, nx: 0, ny: 0.80, pwidth: 0.15, pnx: 0, pny: 0.74 },
+    light:  { elev: 34,   dynamic: true },   // pinned to a layout slot in the longevity hero so it scrolls with its text
+    letterO:{ elev: 89.5, dynamic: true },
+    tile:   { elev: 89.5, dynamic: true },
+    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0, pointerYaw: 22, pointerElev: 5, raw: true },   // the pointer sweeps along the rim; width passes through untouched
+    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.36, pnx: 0.85, pny: 0.55 },   // portrait: the reviews stack over the centre, so the tray peeks in from the right edge
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
   const widthKeys = K.width.map(([p, v]) => [p, v]);                  // hero entries re-capped on resize
@@ -750,9 +766,13 @@ export function createScene(canvas, options = {}) {
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
     const o = override && PRESETS[override];
     if (o) {
-      out.elev = o.elev; out.width = o.width; out.vd = 1;
-      const portrait = aspect < 1 && o.pnx != null;
-      out.nx = portrait ? o.pnx : o.nx; out.ny = portrait ? o.pny : o.ny;
+      out.elev = o.elev; out.vd = 1;
+      const portrait = aspect < 1;
+      if (o.dynamic) { out.width = focus.width; out.nx = focus.nx; out.ny = focus.ny; }
+      else {
+        out.width = portrait && o.pwidth != null ? o.pwidth / 1.75 : o.width;   // pre-compensates the portrait multiplier
+        out.nx = portrait && o.pnx != null ? o.pnx : o.nx; out.ny = portrait && o.pny != null ? o.pny : o.ny;
+      }
     }
     return out;
   }
@@ -763,6 +783,7 @@ export function createScene(canvas, options = {}) {
   function applyCamera(v) {
     let frac = v.width;
     if (aspect < 1 && frac <= 1) frac = Math.min(frac * 1.75, 0.72);   // portrait: the tray owns the width (macro shots pass through)
+    if (v.dyn) frac = v.width;                                          // dynamic presets are already exact screen fractions
     const tanH = Math.tan(FOV / 2 * DEG);
     const dist = TRAY_D / (frac * aspect * 2 * tanH);
     const el = clamp(v.elev, -60, 89.5) * DEG, yaw = v.yaw * DEG;
@@ -780,6 +801,17 @@ export function createScene(canvas, options = {}) {
     camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
     _proj.copy(target).project(camera);
     bounds.x = (_proj.x + 1) / 2 * W; bounds.y = (1 - _proj.y) / 2 * H; bounds.r = frac * W / 2;
+    // backdrop planes: a depth just beyond the tray's far rim, sized to the frustum slice at that depth
+    const D = dist + 1.3, hf = 2 * D * tanH, wf = hf * aspect;
+    for (let i = 0; i < backdropMeshes.length; i++) {
+      const m = backdropMeshes[i], b = backdrops[i];
+      if (!b) { m.visible = false; continue; }
+      const l = b.left ?? 0, r = b.right ?? W, t = b.top, btm = b.bottom;
+      const x0 = (l / W - 0.5) * wf, x1 = (r / W - 0.5) * wf, y0 = (0.5 - btm / H) * hf, y1 = (0.5 - t / H) * hf;
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, -D);
+      m.scale.set(Math.max(0.001, x1 - x0), Math.max(0.001, y1 - y0), 1);
+      m.visible = true;
+    }
     scene.fog.near = dist + 0.3;                              // a whisper of depth on the far rim
     scene.fog.far = dist + 9.5;
 
@@ -800,7 +832,7 @@ export function createScene(canvas, options = {}) {
 
   function applySet(vd) {
     const op = 1 - vd;
-    matGroup.visible = op > 0.002;
+    matGroup.visible = op > 0.01;
     spot.visible = matGroup.visible;
     matGroup.position.y = -0.3 * vd;
     for (const m of fadeMats) m.opacity = m.userData.baseOpacity * op;
@@ -813,8 +845,9 @@ export function createScene(canvas, options = {}) {
     targetView(progress, tgt);
     const snap = first || reduced || !running;               // static / reduced motion / on-demand frames: no damping
     const a = snap ? 1 : 1 - Math.exp(-dt * 6.5);
-    const aCam = snap ? 1 : 1 - Math.exp(-dt * (override ? 2.6 : 6.5));   // preset-to-preset moves take their time
-    for (const f of FIELDS) cur[f] += (tgt[f] - cur[f]) * aCam;
+    const oCam = override && PRESETS[override];
+    const aCam = snap ? 1 : 1 - Math.exp(-dt * (oCam ? (oCam.dynamic ? 10 : 2.6) : 6.5));   // preset moves take their time; rect-pinned presets keep up with the scroll
+    for (const f of FIELDS) cur[f] += (tgt[f] - cur[f]) * (f === 'vd' ? a : aCam);   // the set's fade always runs at the quick rate
     pointerCur.x += (pointer.x - pointerCur.x) * a; pointerCur.y += (pointer.y - pointerCur.y) * a;
     first = false;
     if (!isStatic) {
@@ -851,7 +884,7 @@ export function createScene(canvas, options = {}) {
     view.width = cur.width;
     view.nx = cur.nx + pointerCur.x * (0.006 * vd + 0.014 * (1 - vd));
     view.ny = cur.ny + bob - pointerCur.y * (0.006 * vd + 0.010 * (1 - vd));
-    view.vd = vd;
+    view.vd = vd; view.dyn = !!(oNow && oNow.dynamic);
     // Dropped coins: fall, bounce twice, settle with a small wobble; they share the beat's coin materials so they
     // fade with it. Oldest coins leave first once the pocket is busy.
     if (!isStatic) for (let i = dropped.length - 1; i >= 0; i--) {
@@ -872,12 +905,6 @@ export function createScene(canvas, options = {}) {
     applyCamera(view);
     applySet(vd);
     const o = override && PRESETS[override];
-    // Sections that paint their own ground ask the tray to leave: it eases down to nothing instead of popping.
-    const wantHide = o && (o.hide || (aspect < 1 && o.phide)) ? 1 : 0;
-    hideT += (wantHide - hideT) * a;
-    const sc = 1 - smooth(hideT);
-    trayGroup.visible = hideT < 0.995;
-    trayGroup.scale.setScalar(Math.max(0.001, sc));
     // FEATURES props: ease in and out with the beat.
     coinT += ((o && o.props ? 1 : 0) - coinT) * a; groundT += ((o && o.ground ? 1 : 0) - groundT) * a;
     coinGroup.visible = coinT > 0.01; ground.visible = groundT > 0.01;
@@ -915,7 +942,12 @@ export function createScene(canvas, options = {}) {
     setViewOverride(name) { override = (name && PRESETS[name]) ? name : null; requestRender(); },
     getAge() { return ageT; },
     // Interaction ---------------------------------------------------------------------------------------
-    getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: trayGroup.visible && hideT < 0.5 && cur.vd > 0.5 }; },
+    getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: cur.vd > 0.5 }; },
+    // Screen-space target for dynamic presets: centre (css px) and diameter (css px). Portrait pre-compensation
+    // keeps the diameter exact under the 1.75 multiplier.
+    setFocus(x, y, d) { focus.nx = (x / W - 0.5) * 2; focus.ny = -(y / H - 0.5) * 2; focus.width = clamp(d / W, 0.02, 1); requestRender(); },
+    // Cream grounds behind the tray, as css-px rects {top, bottom, left?, right?}; pass [] to clear.
+    setBackdrops(list) { backdrops.length = 0; for (const b of (list || []).slice(0, 2)) if (b && b.bottom > b.top) backdrops.push(b); requestRender(); },
     dragStart() { drag.active = true; drag.vYaw = 0; drag.vElev = 0; requestRender(); },
     drag(dx, dy, dt = 1 / 60) {                            // css px deltas; ~0.35° per px of yaw, 0.25° per px of elevation
       if (reduced) return;

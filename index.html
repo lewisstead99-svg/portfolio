@@ -122,7 +122,7 @@
     </section>
 
     <!-- 03 GALLERY — a giant line rolls across the screen, then a carousel of plates slides through the window -->
-    <section class="gallery" id="gallery" data-view="away" data-nav="intro">
+    <section class="gallery" id="gallery" data-view="perch" data-nav="intro" data-cursor="drag">
       <div class="gallery__pin">
         <p class="gallery__kicker"><span class="label">So solid,</span><span class="gallery__small">it's furniture.</span></p>
         <h2 class="gallery__headline" id="marquee" aria-label="So solid, it's furniture.">it's furniture.</h2>
@@ -201,7 +201,7 @@
     </section>
 
     <!-- 05 LETTERS — the wordmark at full width, its O drawn as the plan circle -->
-    <section class="letters" id="letters" data-view="away" data-nav="features">
+    <section class="letters" id="letters" data-view="letterO" data-nav="features" data-cursor="drag">
       <p class="label letters__label">Drawn before it was turned</p>
       <div class="letters__row" aria-label="HOLM">
         <span class="letters__l">H</span>
@@ -249,8 +249,9 @@
     </section>
 
     <!-- 08 LONGEVITY — the light interlude: a giant word, then three panels -->
-    <section class="light" id="longevity" data-view="away" data-nav="product">
+    <section class="light" id="longevity" data-view="light" data-nav="product" data-cursor="drag">
       <div class="light__hero">
+        <div class="light__slot" aria-hidden="true"></div>
         <p class="label light__top">100% timber</p>
         <p class="label light__side">Slow-grown</p>
         <h2 class="light__word" data-split>longevity</h2>
@@ -303,8 +304,8 @@
     </section>
 
     <!-- 10 ALWAYS -->
-    <section class="always" id="always" data-view="away" data-nav="product">
-      <div class="always__tile always__tile--cream"><img src="./assets/img/plates/top.png" alt="The tray from above on cream"></div>
+    <section class="always" id="always" data-view="tile" data-nav="product" data-cursor="drag">
+      <div class="always__tile always__tile--live" role="img" aria-label="The tray from above, live"></div>
       <div class="always__tile always__tile--bark"><img src="./assets/img/plates/side.png" alt="The tray in profile on brown"></div>
       <div class="always__text">
         <h2 class="display display--left" data-split>Always on.</h2>

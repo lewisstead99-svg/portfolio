@@ -294,19 +294,21 @@ section { position: relative; min-height: var(--vh); }
 .dots__dot.is-on { background: var(--color-warm-cream); }
 
 /* Light interlude */
-.light { background: var(--color-warm-cream); color: var(--color-walnut-shadow); display: flex; flex-direction: column; }
+.light { background: transparent; color: var(--color-walnut-shadow); display: flex; flex-direction: column; }   /* the cream ground is painted by the scene, behind the tray */
 .light__hero { position: relative; min-height: var(--vh); display: grid; place-content: center; justify-items: center; gap: var(--spacing-24); padding: 120px var(--edge) 120px var(--gutter); text-align: center; overflow: hidden; }
 /* Dappled daylight on the cream ground: two soft pools that drift, the way leaf shadow moves on a desk. */
 .light__hero::before { content: ""; position: absolute; inset: -20%; pointer-events: none; background: radial-gradient(38% 30% at 28% 32%, rgba(16, 9, 4, .11), transparent 70%), radial-gradient(30% 42% at 74% 62%, rgba(16, 9, 4, .09), transparent 70%), radial-gradient(22% 18% at 55% 20%, rgba(16, 9, 4, .06), transparent 70%); animation: dapple 22s ease-in-out infinite alternate; }
 .light__hero > * { position: relative; }
 @keyframes dapple { from { transform: translate(0, 0) scale(1); } to { transform: translate(-4%, 3%) scale(1.06); } }
 .light__top { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); }
+/* Where the tray floats in this section: a slot in the layout, so it scrolls with the words around it. */
+.light__slot { position: absolute; right: 7%; top: 9%; width: min(20vw, 300px); height: min(20vw, 300px); }
 .light__side { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); }
 .light__word { font-size: clamp(64px, 15vw, 260px); line-height: .95; text-transform: none; font-weight: var(--weight-medium); }
 .light__body { font-size: var(--text-sm); line-height: 1.4; font-weight: var(--weight-regular); text-transform: none; max-width: 44ch; }
 .footnote--light { color: var(--color-walnut-shadow); }
 .strip { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px dashed var(--color-cork-border); }
-.strip__panel { position: relative; min-height: 46vh; padding: var(--spacing-24); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--spacing-18); border-right: 1px dashed var(--color-cork-border); overflow: hidden; }
+.strip__panel { position: relative; min-height: 46vh; padding: var(--spacing-24); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--spacing-18); border-right: 1px dashed var(--color-cork-border); overflow: hidden; background: var(--color-warm-cream); }
 .strip__panel:last-child { border-right: 0; }
 .strip__panel--olive { background: var(--color-mat); color: var(--color-warm-cream); }
 .strip__big { position: absolute; left: var(--spacing-24); top: var(--spacing-24); font-size: clamp(80px, 12vw, 200px); line-height: .9; opacity: .6; }
@@ -339,7 +341,7 @@ section { position: relative; min-height: var(--vh); }
 .always { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); }
 .always__tile { display: grid; place-items: center; overflow: hidden; min-height: var(--vh); }
 .always__tile img { width: 100%; height: 100%; object-fit: contain; padding: 8%; }
-.always__tile--cream { background: var(--color-warm-cream); }
+.always__tile--live { background: transparent; }
 .always__tile--bark { background: var(--color-bark-brown); }
 .always__text { display: flex; flex-direction: column; justify-content: center; gap: var(--spacing-24); padding: 120px var(--edge) 160px var(--spacing-41); }
 .always__text .display { font-size: clamp(64px, 9vw, 150px); }
@@ -413,6 +415,8 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
 .no-webgl .hero { background: var(--color-walnut-shadow) url('../img/plate-hero.jpg') center / cover no-repeat; }
 .no-webgl .reveal__object, .no-webgl .beat__stage, .no-webgl .stage { background: url('../img/plate-void.png') center / contain no-repeat; }
 .no-webgl .reveal__object { min-height: 48vh; }
+.no-webgl .light { background: var(--color-warm-cream); }
+.no-webgl .always__tile--live { background: var(--color-warm-cream) url('../img/plates/top.png') center / 70% no-repeat; }
 
 /* --------------------------------------------------------------------------
    Responsive
@@ -453,6 +457,7 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .letters__row { font-size: 24vw; }
   .beat { padding: 96px var(--edge) 40px var(--gutter); }
   .light__side { display: none; }
+  .light__slot { right: 5%; top: 14%; width: 32vw; height: 32vw; }
   .strip { grid-template-columns: 1fr; }
   .strip__panel { border-right: 0; border-bottom: 1px dashed var(--color-cork-border); min-height: 40vh; }
   .reviews__top { grid-template-columns: 1fr; }

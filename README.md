@@ -16,20 +16,23 @@ The page follows the beat structure of the reference site, section for section, 
 | 00 | Hero | Top-down "photograph": the tray on a cutting mat with pencils, craft knife, brass ruler and paperclip. Wordmark upper-left, copy over the photo, info card, turntable card, scroll cue, right-edge progress bar. |
 | 01 | Intro | The mat falls away, scattered letters drift past, the tray tumbles through the void and rests at 3/4 between heading and body. |
 | 02 | Statement | "Made by hand." types itself in, ember model tag, top-down tray with dashed callouts, view pills. |
-| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of six plates slides through. |
+| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of six plates slides through. The tray perches small above them. |
 | 04 | Features | Pinned split: frosted panel with icon, label, copy and heading; the tray re-angles for each beat (lip, underside, top) with a dimension, a gauge and a serif formula. |
-| 05 | Letters | HOLM at full width, the O drawn as the plan circle with ember control points. |
+| 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
 | 07 | Macro | The camera drops to grain level across the rim; a friction-coefficient card. |
-| 08 | Longevity | The light interlude: a cream ground, a giant word, a three-panel strip. |
+| 08 | Longevity | The light interlude: a cream ground the scene paints behind the tray, a giant word, a three-panel strip. |
 | 09 | Reviews | Rating header, three quotes with ember highlights, two plate tiles. |
-| 10 | Always on | Two plate tiles and a display line. |
+| 10 | Always on | The live tray inside a cream tile, a plate tile beside it, and a display line. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
 | 12 | Contact | Underline-only email field, ember "Built by" credit, the single filled pill, colophon. |
 
-- **One continuous object.** A single Three.js scene renders the tray for the whole page. Sections either
-  read the scroll position through keyframes or ask for a named camera preset; the page resolves which one
-  wins (product pills, then feature beats, then the section's own preset).
+- **One continuous object.** A single Three.js scene renders the tray for the whole page and it is never
+  hidden: every section has a place for it, and it flies between them. Sections either read the scroll
+  position through keyframes or ask for a named camera preset; two presets are pinned to DOM rects (the O,
+  the cream tile) and one to a layout slot, so the tray scrolls with the words around it. The page resolves
+  which preset wins (product pills, then feature beats, then the section's own). Section state is read from
+  geometry on scroll, not from observer root margins, so it also works inside a cross-origin iframe.
 - **Two typographic voices.** Uppercase weight 500 for the interface, mixed case weight 400 for copy, plus
   the occasional mixed-case display line as the reference does.
 - **One accent.** `#dc5000` on the credit line, the model tag, the drawing's control points and the
