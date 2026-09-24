@@ -665,10 +665,13 @@ export function createScene(canvas, options = {}) {
   // Keyframes from the contract table. width = tray diameter as a fraction of viewport width (desktop);
   // nx/ny = tray centre offset from the viewport centre; vd = void amount (0 = photograph, 1 = void).
   const K = {
-    elev:  [[0, 83], [0.18, 83], [0.30, 35], [0.46, 35], [0.54, 12], [0.66, 12], [0.74, 55], [0.84, 55], [0.92, 89.5], [1, 89.5]],
-    yaw:   [[0, 0], [0.18, 0], [0.30, -20], [0.50, 20], [0.70, 42], [0.86, 64], [0.94, 90], [1, 90]],  // REST squares up: grain vertical
-    width: [[0, 0.38], [0.18, 0.38], [0.30, 0.40], [0.46, 0.40], [0.54, 0.44], [0.66, 0.44], [0.74, 0.46], [0.84, 0.46], [0.92, 0.26], [1, 0.26]],
-    nx:    [[0, 0.20], [0.18, 0.20], [0.30, 0], [1, 0]],
+    // LIFT (0.18–0.26) drops the camera off the top-down photograph; the INTRO then TUMBLES the tray — up to
+    // top-down, over the edge to the underside, back to a 3/4 rest at the section's anchor (0.40). FEATURES run
+    // on presets, PRODUCT (≈0.82) is a clean top plateau, the DRAWING and CONTACT plates are small top-downs.
+    elev:  [[0, 83], [0.18, 83], [0.26, 60], [0.31, 12], [0.35, -34], [0.40, 35], [0.50, 20], [0.70, 20], [0.78, 89.5], [0.86, 89.5], [0.92, 89.5], [1, 89.5]],
+    yaw:   [[0, 0], [0.18, 0], [0.26, -10], [0.40, 110], [0.50, 130], [0.70, 160], [0.78, 270], [1, 270]],  // top plates square up: grain vertical
+    width: [[0, 0.38], [0.18, 0.38], [0.26, 0.40], [0.46, 0.40], [0.54, 0.44], [0.66, 0.44], [0.74, 0.40], [0.86, 0.40], [0.92, 0.26], [1, 0.26]],
+    nx:    [[0, 0.12], [0.18, 0.12], [0.30, 0], [1, 0]],
     ny:    [[0, -0.08], [0.18, -0.08], [0.30, 0], [1, 0]],
     vd:    [[0, 0], [0.18, 0], [0.26, 1], [1, 1]],   // the set is gone before the camera drops past ~50°
   };
@@ -677,6 +680,20 @@ export function createScene(canvas, options = {}) {
     top:    { elev: 89.5, width: 0.40, nx: 0, ny: 0 },
     side:   { elev: 12,   width: 0.44, nx: 0, ny: 0 },
     detail: { elev: 55,   width: 0.46, nx: 0, ny: 0 },
+    under:  { elev: -24,  width: 0.44, nx: 0, ny: 0 },   // the foot ring and chamfer from below
+    lip:    { elev: 20,   width: 0.44, nx: 0, ny: 0 },   // low enough to read the pocket depth against the lip
+    // FEATURES presets: the tray sits in the right two thirds beside a frosted panel (portrait: upper half, pnx/pny).
+    f1:     { elev: 18,   width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
+    f2:     { elev: -28,  width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
+    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
+    // Later beats: the underside flip, a macro across the rim, a small 3/4 between review columns, and 'away'
+    // (tray hidden) for sections that paint their own ground or carry the tray as plates.
+    flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0 },
+    flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0 },
+    statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0 },
+    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0 },
+    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, phide: true },   // portrait: the reviews stack over the centre, so the tray steps out
+    away:   { elev: 89.5, width: 0.30, nx: 0, ny: 0, hide: true },
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
   const widthKeys = K.width.map(([p, v]) => [p, v]);                  // hero entries re-capped on resize
@@ -695,7 +712,11 @@ export function createScene(canvas, options = {}) {
     out.elev = track(K.elev, p); out.yaw = track(K.yaw, p); out.width = track(widthKeys, p);
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
     const o = override && PRESETS[override];
-    if (o) { out.elev = o.elev; out.width = o.width; out.nx = o.nx; out.ny = o.ny; out.vd = 1; }
+    if (o) {
+      out.elev = o.elev; out.width = o.width; out.vd = 1;
+      const portrait = aspect < 1 && o.pnx != null;
+      out.nx = portrait ? o.pnx : o.nx; out.ny = portrait ? o.pny : o.ny;
+    }
     return out;
   }
 
@@ -704,10 +725,11 @@ export function createScene(canvas, options = {}) {
 
   function applyCamera(v) {
     let frac = v.width;
-    if (aspect < 1) frac = Math.min(frac * 1.75, 0.72);       // portrait: the tray owns the width
+    if (aspect < 1 && frac <= 1) frac = Math.min(frac * 1.75, 0.72);   // portrait: the tray owns the width (macro shots pass through)
     const tanH = Math.tan(FOV / 2 * DEG);
     const dist = TRAY_D / (frac * aspect * 2 * tanH);
-    const el = clamp(v.elev, 4, 89.5) * DEG, yaw = v.yaw * DEG;
+    const el = clamp(v.elev, -60, 89.5) * DEG, yaw = v.yaw * DEG;
+    const below = smooth(clamp(-v.elev / 30, 0, 1));           // camera under the horizon: swing the key and rim down with it
     _dir.set(Math.cos(el) * Math.sin(yaw), Math.sin(el), Math.cos(el) * Math.cos(yaw));
     camera.position.copy(target).addScaledVector(_dir, dist);
     camera.up.set(0, 1, 0);
@@ -723,9 +745,9 @@ export function createScene(canvas, options = {}) {
 
     // light rig, relative to the camera yaw
     const lift = v.vd;
-    sph(key.position, yaw + lerp(135, 55, lift) * DEG, lerp(52, 46, lift) * DEG, 6);
+    sph(key.position, yaw + lerp(135, 55, lift) * DEG, lerp(lerp(52, 46, lift), -42, below) * DEG, 6);
     sph(spot.position, yaw + 135 * DEG, 58 * DEG, 7.5);
-    sph(rim.position, yaw + 135 * DEG, 24 * DEG, 6);
+    sph(rim.position, yaw + 135 * DEG, lerp(24, -18, below) * DEG, 6);
     sph(front.position, yaw - 40 * DEG, 42 * DEG, 6);
     sph(bounce.position, yaw - 35 * DEG, -10 * DEG, 6);
     key.intensity = lerp(0.75, 3.0, lift);                    // the spot carries the hero; the key carries the void
@@ -765,13 +787,18 @@ export function createScene(canvas, options = {}) {
       }
     }
     const vd = cur.vd;
-    const drift = reduced ? 0 : Math.sin(elapsed * 0.35) * 1.4 * vd;          // idle drift only in the void
-    const driftEl = reduced ? 0 : Math.sin(elapsed * 0.23 + 1.0) * 0.6 * vd;  // the hero photograph stays still
-    view.elev = cur.elev + driftEl - pointerCur.y * 1.2;
-    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * 1.5;
-    view.width = cur.width; view.nx = cur.nx; view.ny = cur.ny; view.vd = vd;
+    // Idle life, only in the void (the hero photograph stays still): a slow yaw wander, a slower nod and a
+    // gentle float, plus a cursor tilt of a few degrees. Reduced motion switches all of it off.
+    const drift = reduced ? 0 : Math.sin(elapsed * 0.35) * 4.5 * vd;
+    const driftEl = reduced ? 0 : Math.sin(elapsed * 0.23 + 1.0) * 1.6 * vd;
+    const bob = reduced ? 0 : Math.sin(elapsed * 0.6 + 0.4) * 0.012 * vd;
+    view.elev = clamp(cur.elev + driftEl - pointerCur.y * 3.0, -60, 89.9);
+    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * 4.0;
+    view.width = cur.width; view.nx = cur.nx + pointerCur.x * 0.006 * vd; view.ny = cur.ny + bob - pointerCur.y * 0.006 * vd; view.vd = vd;
     applyCamera(view);
     applySet(vd);
+    const o = override && PRESETS[override];
+    trayGroup.visible = !(o && (o.hide || (aspect < 1 && o.phide)));
   }
 
   function renderNow() {

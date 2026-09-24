@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>HOLM plate</title>
-<style>html,body{margin:0;height:100%;background:#100904}body.transparent{background:transparent}canvas{display:block;width:100vw;height:100vh}</style>
+<style>html,body{margin:0;height:100%;background:#100904}html.transparent,html.transparent body{background:transparent}canvas{display:block;width:100vw;height:100vh}</style>
 <script type="importmap">{ "imports": { "three": "../assets/js/vendor/three.module.min.js" } }</script>
 </head><body>
 <canvas id="c"></canvas>
 <script type="module">
   import { createScene } from '../assets/js/scene.js';
-  if (new URLSearchParams(location.search).has('transparent')) document.body.classList.add('transparent');
+  if (new URLSearchParams(location.search).has('transparent')) document.documentElement.classList.add('transparent');
   const c = document.getElementById('c');
   const scene = createScene(c, { static: true });
   scene.resize(innerWidth, innerHeight, Math.min(devicePixelRatio || 1, 2));

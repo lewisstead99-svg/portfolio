@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>HOLM — Made for keys, built for desks</title>
   <meta name="description" content="HOLM: a hand-turned solid walnut valet tray. A darkroom product editorial — one object floating in warm darkness, rendered live in your browser.">
   <meta name="theme-color" content="#100904">
@@ -19,8 +19,23 @@
 <body>
   <a class="skip" href="#intro">Skip to content</a>
 
+  <!-- Preloader: wordmark and a hairline that fills while the scene compiles its first frame. -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <span class="loader__mark">HOLM</span>
+    <span class="loader__line"><span class="loader__fill"></span></span>
+    <span class="loader__label">Loading</span>
+  </div>
+
   <!-- One WebGL scene renders the tray for the whole page: it starts as a top-down "photograph" and lifts into the void as you scroll. -->
   <canvas id="scene" class="scene" aria-hidden="true"></canvas>
+
+  <!-- Letters that scatter around the tray as the photograph dissolves into the void. -->
+  <div class="scatter" id="scatter" aria-hidden="true">
+    <span class="scatter__l" style="--x:12%;--y:30%">H</span>
+    <span class="scatter__l" style="--x:80%;--y:24%">o</span>
+    <span class="scatter__l" style="--x:16%;--y:70%">l</span>
+    <span class="scatter__l" style="--x:78%;--y:72%">m</span>
+  </div>
 
   <header class="nav rise" style="--i:1" id="nav">
     <a class="nav__brand" href="#top">HOLM</a>
@@ -32,24 +47,28 @@
     </nav>
   </header>
 
-  <p class="serial" aria-hidden="true">HOLM 1-MODEL</p>
+  <p class="serial rise" style="--i:2" aria-hidden="true"><span class="serial__dot"></span>HOLM-1-Model</p>
+  <div class="progress rise" style="--i:2" aria-hidden="true"><span class="progress__thumb" id="progress"></span></div>
+  <p class="cue rise" style="--i:5" id="cue" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 7v10M8 13l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+    <span>Scroll to continue</span>
+  </p>
 
   <main id="main">
 
-    <!-- HERO — photographic mode: the tray on a cutting mat with the tools of the craft -->
-    <section class="hero" id="top" data-anchor="0" data-scene="hero">
+    <!-- 00 HERO — photographic mode: the tray on a cutting mat with the tools of the craft -->
+    <section class="hero" id="top" data-anchor="0">
       <div class="hero__lockup rise" style="--i:0">
-        <p class="hero__tag">Made for keys, built for desks.</p>
+        <p class="hero__tag">Made for keys. Built for desks.</p>
         <h1 class="wordmark">HOLM</h1>
       </div>
-
-      <div class="card hero__card rise" style="--i:2">
-        <h2 class="card__heading">Designed by Fabricatr, the studio that builds products worth looking at.</h2>
+      <p class="hero__copy rise" style="--i:2">Made to hold, to sit flat and to age well. Holm gives the smallest things on your desk one considered place to land.</p>
+      <div class="card hero__card rise" style="--i:3">
+        <h2 class="card__heading">Designed<br>by Fabricatr,<br>the studio that<br>builds products<br>worth looking at.</h2>
         <hr class="rule">
-        <p class="card__body">A concept editorial built as a portfolio piece. One object, warm darkness, cream type. The tray is rendered live in your browser. Scroll, and it lifts off the desk.</p>
+        <p class="card__body">The world's most unnecessarily well-made valet tray.</p>
       </div>
-
-      <button class="card thumb rise" style="--i:3" type="button" id="spin" aria-pressed="false" aria-label="Turntable: spin the tray">
+      <button class="card thumb rise" style="--i:4" type="button" id="spin" aria-pressed="false" aria-label="Turntable: spin the tray">
         <span class="thumb__mark">HOLM</span>
         <svg class="thumb__play" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true" focusable="false">
           <circle cx="24" cy="24" r="23" fill="none" stroke="currentColor" stroke-width="1"/>
@@ -58,34 +77,245 @@
         </svg>
         <span class="thumb__label"><span class="thumb__on">Stop</span><span class="thumb__off">Turntable</span></span>
       </button>
-
-      <p class="hero__scroll rise" style="--i:4" aria-hidden="true">Scroll</p>
     </section>
 
-    <hr class="divider">
-
-    <!-- INTRO — void mode: object centred, heading left, body right -->
-    <section class="reveal" id="intro" data-anchor="0.40" data-scene="reveal">
+    <!-- 01 INTRO — the tray tumbles through the void, then rests at 3/4 between heading and body -->
+    <section class="reveal intro" id="intro" data-anchor="0.40" data-nav="intro">
       <div class="reveal__grid">
-        <div class="reveal__left">
-          <p class="label">01 — Intro</p>
-          <h2 class="heading">Isn't just a tray.</h2>
-        </div>
+        <div class="reveal__left"><h2 class="heading" data-split>Isn't just a tray.</h2></div>
         <div class="reveal__object" aria-hidden="true"></div>
-        <div class="reveal__right">
-          <p class="body">Turned from a single blank of American black walnut and finished by hand in hardwax oil. Holm gives your keys, your watch and the coins in your pocket one place to land, and makes the simplest moment of the day feel considered.</p>
+        <div class="reveal__right"><p class="body body--sm">Holm isn't just a tray. It's the result of unreasonable attention to detail.*</p></div>
+      </div>
+      <p class="footnote">* And a lathe.</p>
+    </section>
+
+    <!-- 02 STATEMENT — a typed display line, the ember model tag, the tray top-down with callouts -->
+    <section class="statement" id="product" data-view="statement" data-nav="intro">
+      <div class="statement__head">
+        <h2 class="display" id="typed" data-type="Made by hand.">Made by hand.</h2>
+        <p class="tag">HOLM-1</p>
+      </div>
+      <div class="statement__stage reveal__object" aria-hidden="true">
+        <svg class="leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <path d="M12 12 L40 36"/><path d="M88 12 L56 48"/><path d="M12 88 L45 70"/><path d="M88 88 L64 60"/>
+          <circle cx="40" cy="36" r="0.35"/><circle cx="56" cy="48" r="0.35"/><circle cx="45" cy="70" r="0.35"/><circle cx="64" cy="60" r="0.35"/>
+        </svg>
+        <span class="callout callout--tl">Lip · R3</span>
+        <span class="callout callout--tr">Pocket · 14 mm deep</span>
+        <span class="callout callout--bl">Stamp · Nº 014</span>
+        <span class="callout callout--br">Ø 200 · 6° flare</span>
+      </div>
+      <p class="statement__note">Hands fill in the gaps.<br>We said hand-made.<br>We meant one pair.</p>
+      <div class="statement__foot">
+        <div class="statement__copy">
+          <p class="body body--sm">One size, one timber, one finish. Black walnut, hardwax oil, nothing else. Every tray is numbered on the underside and will darken a shade for each year you own it.</p>
+          <p class="price">£145 · Numbered 1–200 · Made in Dorset</p>
+        </div>
+        <div class="views" role="group" aria-label="View">
+          <span class="views__label">View</span>
+          <button class="btn btn--ghost" type="button" data-pill="top" aria-pressed="false">Top</button>
+          <button class="btn btn--ghost" type="button" data-pill="side" aria-pressed="false">Side</button>
+          <button class="btn btn--ghost" type="button" data-pill="under" aria-pressed="false">Under</button>
+          <button class="btn btn--ghost" type="button" data-pill="detail" aria-pressed="false">Detail</button>
         </div>
       </div>
     </section>
 
-    <hr class="divider">
+    <!-- 03 GALLERY — a giant line rolls across the screen, then a carousel of plates slides through the window -->
+    <section class="gallery" id="gallery" data-view="away" data-nav="intro">
+      <div class="gallery__pin">
+        <p class="gallery__kicker"><span class="label">So solid,</span><span class="gallery__small">it's furniture.</span></p>
+        <h2 class="gallery__headline" id="marquee" aria-label="So solid, it's furniture.">it's furniture.</h2>
+        <div class="gallery__track" id="track">
+          <figure class="plate plate--cream"><img src="./assets/img/plates/quarter.png" alt="The HOLM tray from three quarters"><figcaption>Nº 014 · The hall table</figcaption><span class="plate__dot"></span></figure>
+          <figure class="plate plate--bark"><img src="./assets/img/plates/under.png" alt="The underside of the tray with its maker's stamp"><figcaption>Nº 037 · Underside</figcaption><span class="plate__dot"></span></figure>
+          <figure class="plate plate--olive"><img src="./assets/img/plates/side.png" alt="The tray in profile"><figcaption>Nº 052 · Profile</figcaption><span class="plate__dot"></span>
+            <div class="plate__ask"><span>Hey @holm, does it come in oak?</span><span class="btn btn--ghost btn--tiny">One timber</span></div></figure>
+          <figure class="plate plate--cream"><img src="./assets/img/plates/top.png" alt="The tray from above"><figcaption>Nº 088 · Plan</figcaption><span class="plate__dot"></span></figure>
+          <figure class="plate plate--drift"><img src="./assets/img/plates/detail.png" alt="A close view of the rim"><figcaption>Nº 121 · Detail</figcaption><span class="plate__dot"></span></figure>
+          <figure class="plate plate--void"><img src="./assets/img/plates/lip.png" alt="The lip of the tray, low angle"><figcaption>Nº 200 · The last one</figcaption><span class="plate__dot"></span></figure>
+        </div>
+      </div>
+    </section>
 
-    <!-- FEATURES — void mode: side profile -->
-    <section class="reveal" id="features" data-anchor="0.60" data-scene="profile">
+    <!-- 04 FEATURES — pinned split: frosted panel left, the tray re-angles on the right for each of three beats -->
+    <section class="pin-section" id="features" data-nav="features">
+      <div class="pin">
+        <aside class="panel">
+          <div class="panel__top">
+            <div class="steps steps--icons">
+              <svg class="icon step is-active" data-step="1" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor"/><path d="M10 13v4a6 6 0 0 0 12 0v-4" fill="none" stroke="currentColor"/></svg>
+              <svg class="icon step" data-step="2" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor"/><path d="M16 9v13M11 17l5 5 5-5" fill="none" stroke="currentColor"/></svg>
+              <svg class="icon step" data-step="3" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor"/><circle cx="16" cy="16" r="9" fill="none" stroke="currentColor"/><circle cx="16" cy="16" r="3.5" fill="none" stroke="currentColor"/></svg>
+            </div>
+            <div class="steps steps--labels">
+              <p class="label step is-active" data-step="1">Holds what you drop</p>
+              <p class="label step" data-step="2">Stays where you put it</p>
+              <p class="label step" data-step="3">Improves with age</p>
+            </div>
+            <div class="steps steps--copy">
+              <p class="panel__body step is-active" data-step="1">A shallow pocket, turned fourteen millimetres deep. Keys settle, coins stop rolling, a watch lies flat. Nothing tips out when you pick it up.</p>
+              <p class="panel__body step" data-step="2">Four hundred and ten grams of solid walnut on a turned foot ring. It does not slide, rock or mark the desk. Put it down once and it stays where it lands.</p>
+              <p class="panel__body step" data-step="3">Hardwax oil, not lacquer. The finish is in the timber, not on it, so nothing chips or peels. Every year the walnut darkens a shade, and a scratch simply becomes grain.</p>
+            </div>
+          </div>
+          <div class="panel__bottom">
+            <hr class="rule">
+            <div class="steps steps--headings">
+              <h2 class="heading heading--panel step is-active" data-step="1" data-split>Holds.</h2>
+              <h2 class="heading heading--panel step" data-step="2" data-split>Sits flat.</h2>
+              <h2 class="heading heading--panel step" data-step="3" data-split>Ages well.</h2>
+            </div>
+            <div class="pills" role="group" aria-label="Feature">
+              <button class="btn btn--ghost" type="button" data-goto="1" aria-pressed="true">01</button>
+              <button class="btn btn--ghost" type="button" data-goto="2" aria-pressed="false">02</button>
+              <button class="btn btn--ghost" type="button" data-goto="3" aria-pressed="false">03</button>
+            </div>
+          </div>
+        </aside>
+        <div class="stage" aria-hidden="true">
+          <div class="dim step is-active" data-step="1"><span class="dim__line"></span><span class="dim__label">14 mm · pocket</span></div>
+          <div class="gauge step" data-step="3">
+            <span class="gauge__label gauge__label--top">Year 1 · Fresh oil</span>
+            <span class="gauge__bar"></span>
+            <span class="gauge__label gauge__label--mid">Year 5</span>
+            <span class="gauge__label gauge__label--bottom">Year 20 · Deep</span>
+          </div>
+          <div class="formula">
+            <div class="steps steps--formula">
+              <p class="formula__row step is-active" data-step="1"><span class="formula__math">d = 14 mm, r = 3 mm</span><span class="formula__caption">Pocket depth and lip radius<br>Turned, then checked by hand</span></p>
+              <p class="formula__row step" data-step="2"><span class="formula__math">m = ρ · V ≈ 410 g</span><span class="formula__caption">Solid black walnut, nothing hollow<br>Weighed on tray Nº 001</span></p>
+              <p class="formula__row step" data-step="3"><span class="formula__math">ΔL* ≈ −1 per year</span><span class="formula__caption">Darkening under daylight<br>A tendency, not a promise</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pin-track" aria-hidden="true">
+        <div class="pin-marker" data-step="1" data-view="f1" data-anchor="0.47"></div>
+        <div class="pin-marker" data-step="2" data-view="f2"></div>
+        <div class="pin-marker" data-step="3" data-view="f3" data-anchor="0.71"></div>
+      </div>
+    </section>
+
+    <!-- 05 LETTERS — the wordmark at full width, its O drawn as the plan circle -->
+    <section class="letters" id="letters" data-view="away" data-nav="features">
+      <p class="label letters__label">Drawn before it was turned</p>
+      <div class="letters__row" aria-label="HOLM">
+        <span class="letters__l">H</span>
+        <svg class="letters__o" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <circle cx="50" cy="50" r="42" class="letters__circle"/>
+          <circle cx="50" cy="50" r="31" class="letters__circle letters__circle--inner"/>
+          <path d="M50 8V4M50 96v-4M8 50H4M96 50h-4M20.3 20.3l-2.8-2.8M79.7 79.7l2.8 2.8M79.7 20.3l2.8-2.8M20.3 79.7l-2.8 2.8" class="letters__handle"/>
+          <g class="letters__pts"><circle cx="50" cy="8" r="1.6"/><circle cx="92" cy="50" r="1.6"/><circle cx="50" cy="92" r="1.6"/><circle cx="8" cy="50" r="1.6"/><circle cx="79.7" cy="20.3" r="1.6"/><circle cx="79.7" cy="79.7" r="1.6"/><circle cx="20.3" cy="79.7" r="1.6"/><circle cx="20.3" cy="20.3" r="1.6"/></g>
+          <rect x="6" y="6" width="88" height="88" class="letters__box"/>
+        </svg>
+        <span class="letters__l">L</span>
+        <span class="letters__l">M</span>
+      </div>
+    </section>
+
+    <!-- 06 FLIP — the number lives underneath -->
+    <section class="beat flip" id="flip" data-view="flipTop" data-flip-view="flip" data-nav="product">
+      <div class="beat__head">
+        <p class="label">Provenance, simplified</p>
+        <h2 class="heading heading--centre" data-split>Numbered by hand.</h2>
+        <p class="beat__body">Turn it over. The maker's stamp, a number from 1 to 200 and the month it was oiled. Flip it back and it's a tray again.</p>
+      </div>
+      <div class="beat__stage reveal__object" aria-hidden="true"></div>
+      <div class="beat__foot">
+        <button class="btn btn--ghost" type="button" id="flipButton" aria-pressed="false"><span class="flip__on">Flip it back</span><span class="flip__off">Flip it over</span></button>
+      </div>
+    </section>
+
+    <!-- 07 MACRO — across the rim at grain level -->
+    <section class="beat macro" id="macro" data-view="macro" data-nav="product">
+      <div class="beat__head">
+        <p class="label">Precision foot, zero drama</p>
+        <h2 class="heading heading--centre" data-split>Grip-locked. No felt required.</h2>
+        <p class="beat__body">A turned foot ring and four hundred and ten grams of walnut. It does not skate when you reach for your keys, and it has never once followed a mug off the edge.</p>
+      </div>
+      <div class="beat__stage" aria-hidden="true"></div>
+      <div class="beat__foot">
+        <div class="card spec">
+          <div class="spec__row"><span>Friction coefficient (est.)</span><span>0.62</span></div>
+          <svg class="spec__swatch" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="grain" width="200" height="60" patternUnits="userSpaceOnUse"><path d="M0 6c40 4 60-8 100-4s60 10 100 6M0 20c30-6 70 8 100 2s70-10 100-2M0 34c50 8 50-10 100-6s50 12 100 4M0 48c40-8 60 6 100 2s60-8 100-2" fill="none" stroke="#ffedd7" stroke-opacity=".55" stroke-width="1"/></pattern></defs><rect width="200" height="60" fill="#382416"/><rect width="200" height="60" fill="url(#grain)"/></svg>
+          <div class="spec__row spec__row--s"><span>Oiled walnut on oak veneer desk</span><span>Dry · 20 °C</span></div>
+        </div>
+        <div class="dots" aria-hidden="true"><span class="dots__dot is-on"></span><span class="dots__dot"></span></div>
+      </div>
+    </section>
+
+    <!-- 08 LONGEVITY — the light interlude: a giant word, then three panels -->
+    <section class="light" id="longevity" data-view="away" data-nav="product">
+      <div class="light__hero">
+        <p class="label light__top">100% timber</p>
+        <p class="label light__side">Slow-grown</p>
+        <h2 class="light__word" data-split>longevity</h2>
+        <p class="light__body">Black walnut from managed woodland in Kent. Sixty years to grow, two years to rest, one afternoon to turn. It may be full of character.*</p>
+        <p class="footnote footnote--light">* Knots are not defects.</p>
+      </div>
+      <div class="strip">
+        <div class="strip__panel strip__panel--olive">
+          <span class="strip__big">60</span>
+          <p class="strip__text">Walnut is felled at around sixty years, once the heartwood is deep enough to be worth the wait.</p>
+        </div>
+        <div class="strip__panel">
+          <svg class="strip__art" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+            <g fill="none" stroke="#100904" stroke-width="1.2">
+              <ellipse cx="100" cy="100" rx="86" ry="80"/><ellipse cx="102" cy="99" rx="72" ry="66"/><ellipse cx="103" cy="99" rx="58" ry="53"/><ellipse cx="104" cy="98" rx="45" ry="41"/><ellipse cx="105" cy="98" rx="32" ry="29"/><ellipse cx="106" cy="97" rx="20" ry="18"/><ellipse cx="106" cy="97" rx="9" ry="8"/>
+              <path d="M100 20v160M20 100h160" stroke-dasharray="2 4"/>
+            </g>
+          </svg>
+          <p class="strip__text">Each blank is cut from a single board and rests for two years before it meets the lathe.</p>
+        </div>
+        <div class="strip__panel">
+          <div class="strip__pills"><span>Kent</span><span>Turned</span><span>Oiled</span><span>Numbered</span></div>
+          <p class="strip__text">No veneer. No filler. No lacquer. Nothing to hide behind, nothing to hide.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 REVIEWS -->
+    <section class="reviews" id="reviews" data-view="quarter" data-nav="product">
+      <div class="reviews__top">
+        <h2 class="heading" data-split>People with keys love Holm.</h2>
+        <p class="body body--sm">Do not take our word for it. See what people say after a year of putting things down.</p>
+      </div>
+      <div class="reviews__grid">
+        <div class="reviews__col">
+          <p class="label reviews__head">Rating &amp; reviews</p>
+          <article class="review"><p class="review__stars">★★★★★ <span>5/5</span></p><p class="review__quote">"Finally somewhere for my keys that <em>isn't the fruit bowl</em>. The fruit is thrilled."</p><p class="review__who">Margot R.<br>Architect, Margate</p></article>
+          <article class="review"><p class="review__stars">★★★★★ <span>5/5</span></p><p class="review__quote">"It has <em>outlived two desks</em>. I'm starting to think the desks were the problem."</p><p class="review__who">Tom H.<br>Furniture maker, Bristol</p></article>
+        </div>
+        <div class="reviews__col reviews__col--mid">
+          <p class="label reviews__head">Customer reviews [ 188 ] ★★★★★ 4.9 / 5</p>
+          <article class="review"><p class="review__stars">★★★★☆ <span>4/5</span></p><p class="review__quote">"Bought one for the hallway. <em>The hallway is now the best room.</em> One star off for making the rest of the house look lazy."</p><p class="review__who">Priya S.<br>Estate agent, Sandbanks</p></article>
+        </div>
+        <div class="reviews__col reviews__col--tiles">
+          <p class="label reviews__head">Holm in use</p>
+          <div class="tile tile--olive"><img src="./assets/img/plates/top.png" alt=""></div>
+          <div class="tile tile--cream"><img src="./assets/img/plates/quarter.png" alt=""></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 ALWAYS -->
+    <section class="always" id="always" data-view="away" data-nav="product">
+      <div class="always__tile always__tile--cream"><img src="./assets/img/plates/top.png" alt="The tray from above on cream"></div>
+      <div class="always__tile always__tile--bark"><img src="./assets/img/plates/side.png" alt="The tray in profile on brown"></div>
+      <div class="always__text">
+        <h2 class="display display--left" data-split>Always on.</h2>
+        <p class="label">24/7 uptime. No power required.</p>
+      </div>
+    </section>
+
+    <!-- 11 DRAWING — the catalogue plate: specs left, small top-down tray centre, technical drawing right -->
+    <section class="reveal drawing" id="drawing" data-anchor="0.94" data-nav="product">
       <div class="reveal__grid">
         <div class="reveal__left">
-          <p class="label">02 — Features</p>
-          <h2 class="heading">Made to be forgotten.</h2>
+          <p class="label">Drawing Nº 01</p>
+          <h2 class="heading" data-split>To scale.</h2>
+          <p class="body body--sm">Every dimension on this page is the one you receive. Turned to the drawing, checked against the ruler on the mat, numbered by hand.</p>
           <dl class="specs">
             <div class="specs__row"><dt>Diameter</dt><dd>Ø 200 mm</dd></div>
             <div class="specs__row"><dt>Height</dt><dd>22 mm</dd></div>
@@ -96,42 +326,48 @@
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right">
-          <p class="body">No lacquer to chip. No felt to peel. A shallow pocket that stops things rolling and a soft lip that stops them leaving. You will notice Holm for a week. After that it is simply where things go.</p>
+          <figure class="plan">
+            <svg class="plan__svg" viewBox="0 0 360 440" role="img" aria-labelledby="plan-title">
+              <title id="plan-title">Technical drawing of the HOLM tray: top view at 200 millimetres diameter and section A–A showing 22 millimetres height, 6 millimetre base, 14 millimetre pocket, 8 millimetre wall, R3 lip and 6 degree flare.</title>
+              <defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="plan__hatch"/></pattern></defs>
+              <text x="20" y="22" class="plan__t">Top view</text>
+              <line x1="80" y1="120" x2="280" y2="120" class="plan__centre"/><line x1="180" y1="20" x2="180" y2="220" class="plan__centre"/>
+              <circle cx="180" cy="120" r="80" class="plan__line"/><circle cx="180" cy="120" r="73.6" class="plan__line"/><circle cx="180" cy="120" r="69" class="plan__fine"/>
+              <text x="66" y="124" class="plan__t plan__t--mid">A</text><text x="294" y="124" class="plan__t plan__t--mid">A</text>
+              <line x1="100" y1="120" x2="100" y2="238" class="plan__ext"/><line x1="260" y1="120" x2="260" y2="238" class="plan__ext"/>
+              <line x1="100" y1="234" x2="260" y2="234" class="plan__line"/><line x1="100" y1="230" x2="100" y2="238" class="plan__line"/><line x1="260" y1="230" x2="260" y2="238" class="plan__line"/>
+              <text x="180" y="248" class="plan__t plan__t--mid">Ø 200</text>
+              <text x="20" y="300" class="plan__t">Section A–A</text>
+              <path class="plan__cut" d="M23.7 357.6 L20 329.6 A4.8 4.8 0 0 1 24.8 324.8 L28 324.8 A4.8 4.8 0 0 1 32.8 329.6 L32.8 339.2 A8 8 0 0 0 40.8 347.2 L319.2 347.2 A8 8 0 0 0 327.2 339.2 L327.2 329.6 A4.8 4.8 0 0 1 332 324.8 L335.2 324.8 A4.8 4.8 0 0 1 340 329.6 L336.3 357.6 L333.9 360 L300 360 L300 358.4 L60 358.4 L60 360 L26.1 360 Z"/>
+              <line x1="20" y1="324.8" x2="340" y2="324.8" class="plan__centre"/>
+              <line x1="10" y1="324.8" x2="10" y2="360" class="plan__line"/><line x1="6" y1="324.8" x2="14" y2="324.8" class="plan__line"/><line x1="6" y1="360" x2="14" y2="360" class="plan__line"/>
+              <text x="0" y="345" class="plan__t plan__t--mid" transform="rotate(-90 4 345)">22</text>
+              <line x1="350" y1="347.2" x2="350" y2="360" class="plan__line"/><line x1="346" y1="347.2" x2="354" y2="347.2" class="plan__line"/><line x1="346" y1="360" x2="354" y2="360" class="plan__line"/>
+              <text x="358" y="356" class="plan__t plan__t--s">6</text>
+              <line x1="290" y1="324.8" x2="290" y2="347.2" class="plan__line"/><line x1="286" y1="324.8" x2="294" y2="324.8" class="plan__line"/><line x1="286" y1="347.2" x2="294" y2="347.2" class="plan__line"/>
+              <text x="296" y="339" class="plan__t plan__t--s">14</text>
+              <line x1="20" y1="314" x2="32.8" y2="314" class="plan__line"/><line x1="20" y1="310" x2="20" y2="318" class="plan__line"/><line x1="32.8" y1="310" x2="32.8" y2="318" class="plan__line"/>
+              <text x="26.4" y="307" class="plan__t plan__t--mid plan__t--s">8</text>
+              <path d="M24 327 L44 312" class="plan__ext"/><text x="46" y="311" class="plan__t plan__t--s">R3</text>
+              <path d="M338 344 L352 334" class="plan__ext"/><text x="354" y="333" class="plan__t plan__t--s">6°</text>
+              <line x1="20" y1="400" x2="340" y2="400" class="plan__fine"/>
+              <text x="20" y="416" class="plan__t plan__t--s">HOLM 1-Model · Valet tray</text>
+              <text x="340" y="416" class="plan__t plan__t--s plan__t--end">Drawing Nº 01 · mm · Rev A</text>
+            </svg>
+            <figcaption class="legal">* Drawn to scale for screen. All dimensions in millimetres. Tolerance ±0.5 mm.</figcaption>
+          </figure>
         </div>
       </div>
     </section>
 
     <hr class="divider">
 
-    <!-- PRODUCT — void mode: detail, with pill view controls -->
-    <section class="reveal" id="product" data-anchor="0.79" data-scene="detail">
+    <!-- 12 CONTACT — the catalogue plate, credits, the single filled CTA -->
+    <section class="reveal contact" id="contact" data-anchor="1" data-nav="contact">
       <div class="reveal__grid">
         <div class="reveal__left">
-          <p class="label">03 — Product</p>
-          <h2 class="heading">One model. One material.</h2>
-          <div class="views" role="group" aria-label="View">
-            <span class="views__label">View</span>
-            <button class="btn btn--ghost" type="button" data-view="top" aria-pressed="false">Top</button>
-            <button class="btn btn--ghost" type="button" data-view="side" aria-pressed="false">Side</button>
-            <button class="btn btn--ghost" type="button" data-view="detail" aria-pressed="false">Detail</button>
-          </div>
-        </div>
-        <div class="reveal__object" aria-hidden="true"></div>
-        <div class="reveal__right">
-          <p class="body">One size, one timber, one finish. Black walnut, hardwax oil, nothing else. Every tray is numbered on the underside and will darken a shade for each year you own it.</p>
-          <p class="price">£145 · Numbered 1–200 · Made in Dorset</p>
-        </div>
-      </div>
-    </section>
-
-    <hr class="divider">
-
-    <!-- CONTACT — void mode: the catalogue plate, credits, the single filled CTA -->
-    <section class="reveal contact" id="contact" data-anchor="1" data-scene="rest">
-      <div class="reveal__grid">
-        <div class="reveal__left">
-          <p class="label">04 — Contact</p>
-          <h2 class="heading">Be first to a number.</h2>
+          <p class="label">Contact</p>
+          <h2 class="heading" data-split>Be first to a number.</h2>
           <p class="body body--sm">Holm ships in a single batch of two hundred. Leave an address and we will hold you a number.</p>
           <form class="field" id="notify" novalidate>
             <label class="visually-hidden" for="email">Your email</label>
