@@ -80,7 +80,7 @@
     </section>
 
     <!-- 01 INTRO — the tray tumbles through the void, then rests at 3/4 between heading and body -->
-    <section class="reveal intro" id="intro" data-anchor="0.40" data-nav="intro">
+    <section class="reveal intro" id="intro" data-anchor="0.40" data-nav="intro" data-cursor="drag">
       <div class="reveal__grid">
         <div class="reveal__left"><h2 class="heading" data-split>Isn't just a tray.</h2></div>
         <div class="reveal__object" aria-hidden="true"></div>
@@ -90,7 +90,7 @@
     </section>
 
     <!-- 02 STATEMENT — a typed display line, the ember model tag, the tray top-down with callouts -->
-    <section class="statement" id="product" data-view="statement" data-nav="intro">
+    <section class="statement" id="product" data-view="statement" data-nav="intro" data-cursor="drag">
       <div class="statement__head">
         <h2 class="display" id="typed" data-type="Made by hand.">Made by hand.</h2>
         <p class="tag">HOLM-1</p>
@@ -139,7 +139,7 @@
     </section>
 
     <!-- 04 FEATURES — pinned split: frosted panel left, the tray re-angles on the right for each of three beats -->
-    <section class="pin-section" id="features" data-nav="features">
+    <section class="pin-section" id="features" data-nav="features" data-cursor="drag">
       <div class="pin">
         <aside class="panel">
           <div class="panel__top">
@@ -165,6 +165,9 @@
               <h2 class="heading heading--panel step is-active" data-step="1" data-split>Holds.</h2>
               <h2 class="heading heading--panel step" data-step="2" data-split>Sits flat.</h2>
               <h2 class="heading heading--panel step" data-step="3" data-split>Ages well.</h2>
+            </div>
+            <div class="steps steps--action">
+              <button class="btn btn--ghost step is-active" data-step="1" type="button" id="dropCoin">Drop a coin</button>
             </div>
             <div class="pills" role="group" aria-label="Feature">
               <button class="btn btn--ghost" type="button" data-goto="1" aria-pressed="true">01</button>
@@ -215,7 +218,7 @@
     </section>
 
     <!-- 06 FLIP — the number lives underneath -->
-    <section class="beat flip" id="flip" data-view="flipTop" data-flip-view="flip" data-nav="product">
+    <section class="beat flip" id="flip" data-view="flipTop" data-flip-view="flip" data-nav="product" data-cursor="flip">
       <div class="beat__head">
         <p class="label">Provenance, simplified</p>
         <h2 class="heading heading--centre" data-split>Numbered by hand.</h2>
@@ -228,7 +231,7 @@
     </section>
 
     <!-- 07 MACRO — across the rim at grain level -->
-    <section class="beat macro" id="macro" data-view="macro" data-nav="product">
+    <section class="beat macro" id="macro" data-view="macro" data-nav="product" data-cursor="drag">
       <div class="beat__head">
         <p class="label">Precision foot, zero drama</p>
         <h2 class="heading heading--centre" data-split>Grip-locked. No felt required.</h2>
@@ -276,7 +279,7 @@
     </section>
 
     <!-- 09 REVIEWS -->
-    <section class="reviews" id="reviews" data-view="quarter" data-nav="product">
+    <section class="reviews" id="reviews" data-view="quarter" data-nav="product" data-cursor="drag">
       <div class="reviews__top">
         <h2 class="heading" data-split>People with keys love Holm.</h2>
         <p class="body">Do not take our word for it. See what people say after a year of putting things down.</p>
@@ -310,7 +313,7 @@
     </section>
 
     <!-- 11 DRAWING — the catalogue plate: specs left, small top-down tray centre, technical drawing right -->
-    <section class="reveal drawing" id="drawing" data-anchor="0.94" data-nav="product">
+    <section class="reveal drawing" id="drawing" data-anchor="0.94" data-nav="product" data-cursor="drag">
       <div class="reveal__grid">
         <div class="reveal__left">
           <p class="label">Drawing Nº 01</p>
@@ -363,7 +366,7 @@
     <hr class="divider">
 
     <!-- 12 CONTACT — the catalogue plate, credits, the single filled CTA -->
-    <section class="reveal contact" id="contact" data-anchor="1" data-nav="contact">
+    <section class="reveal contact" id="contact" data-anchor="1" data-nav="contact" data-cursor="drag">
       <div class="reveal__grid">
         <div class="reveal__left">
           <p class="label">Contact</p>

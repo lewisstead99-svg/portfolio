@@ -688,6 +688,14 @@ export function createScene(canvas, options = {}) {
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.034; ground.receiveShadow = true; ground.visible = false;
   scene.add(ground);
   let coinT = 0, groundT = 0, ageT = 0, hideT = 0;
+  // Interaction state: drag-to-rotate with inertia (offsets relax while the page scrolls, persist while it rests),
+  // scroll-velocity kicks, and coins dropped into the pocket by the visitor.
+  const drag = { yaw: 0, elev: 0, vYaw: 0, vElev: 0, active: false };
+  const dropped = [];
+  const coinGeoA = new THREE.CylinderGeometry(0.11, 0.11, 0.026, 48), coinGeoB = new THREE.CylinderGeometry(0.095, 0.095, 0.024, 48);
+  let lastProgress = 0;
+  const bounds = { x: 0, y: 0, r: 0 };
+  const _proj = new THREE.Vector3();
 
   /* ------------------------------------------------------------ choreography */
 
@@ -720,7 +728,7 @@ export function createScene(canvas, options = {}) {
     flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0 },
     flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0 },
     statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0 },
-    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0 },
+    macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0, pointerYaw: 22, pointerElev: 5 },   // the pointer sweeps along the rim
     quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, phide: true },   // portrait: the reviews stack over the centre, so the tray steps out
     away:   { elev: 89.5, width: 0.30, nx: 0, ny: 0, hide: true },
   };
@@ -769,6 +777,9 @@ export function createScene(canvas, options = {}) {
     _up.setFromMatrixColumn(camera.matrixWorld, 1);
     camera.position.addScaledVector(_right, -v.nx * halfWw).addScaledVector(_up, -v.ny * halfHw);
     camera.updateMatrixWorld();
+    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+    _proj.copy(target).project(camera);
+    bounds.x = (_proj.x + 1) / 2 * W; bounds.y = (1 - _proj.y) / 2 * H; bounds.r = frac * W / 2;
     scene.fog.near = dist + 0.3;                              // a whisper of depth on the far rim
     scene.fog.far = dist + 9.5;
 
@@ -802,7 +813,8 @@ export function createScene(canvas, options = {}) {
     targetView(progress, tgt);
     const snap = first || reduced || !running;               // static / reduced motion / on-demand frames: no damping
     const a = snap ? 1 : 1 - Math.exp(-dt * 6.5);
-    for (const f of FIELDS) cur[f] += (tgt[f] - cur[f]) * a;
+    const aCam = snap ? 1 : 1 - Math.exp(-dt * (override ? 2.6 : 6.5));   // preset-to-preset moves take their time
+    for (const f of FIELDS) cur[f] += (tgt[f] - cur[f]) * aCam;
     pointerCur.x += (pointer.x - pointerCur.x) * a; pointerCur.y += (pointer.y - pointerCur.y) * a;
     first = false;
     if (!isStatic) {
@@ -820,9 +832,43 @@ export function createScene(canvas, options = {}) {
     const drift = reduced ? 0 : Math.sin(elapsed * 0.35) * 4.5 * vd;
     const driftEl = reduced ? 0 : Math.sin(elapsed * 0.23 + 1.0) * 1.6 * vd;
     const bob = reduced ? 0 : Math.sin(elapsed * 0.6 + 0.4) * 0.012 * vd;
-    view.elev = clamp(cur.elev + driftEl - pointerCur.y * 3.0, -60, 89.9);
-    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * 4.0;
-    view.width = cur.width; view.nx = cur.nx + pointerCur.x * 0.006 * vd; view.ny = cur.ny + bob - pointerCur.y * 0.006 * vd; view.vd = vd;
+    // Drag inertia and relaxation. While the visitor drags, offsets follow the hand; on release they coast with
+    // friction; and whenever the page scrolls the offsets ease back so the choreography regains the wheel.
+    if (!isStatic) {
+      if (!drag.active) { drag.yaw += drag.vYaw * dt; drag.elev += drag.vElev * dt; }
+      const fr = Math.exp(-dt * 3.2); drag.vYaw *= fr; drag.vElev *= fr;
+      const scrollSpeed = dt > 0 ? Math.abs(progress - lastProgress) / dt : 0;
+      const relax = 1 - Math.exp(-dt * clamp(scrollSpeed * 40, 0, 1) * 4);
+      drag.yaw -= drag.yaw * relax; drag.elev -= drag.elev * relax;
+      drag.elev = clamp(drag.elev, -70, 70);
+    }
+    lastProgress = progress;
+    const oNow = override && PRESETS[override];
+    const pgY = (oNow && oNow.pointerYaw) || 4.0, pgE = (oNow && oNow.pointerElev) || 3.0;
+    view.elev = clamp(cur.elev + driftEl - pointerCur.y * pgE + drag.elev, -60, 89.9);
+    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * pgY + drag.yaw;
+    // Pointer parallax: a gentle pan across the photograph in the hero, a nudge of the object in the void.
+    view.width = cur.width;
+    view.nx = cur.nx + pointerCur.x * (0.006 * vd + 0.014 * (1 - vd));
+    view.ny = cur.ny + bob - pointerCur.y * (0.006 * vd + 0.010 * (1 - vd));
+    view.vd = vd;
+    // Dropped coins: fall, bounce twice, settle with a small wobble; they share the beat's coin materials so they
+    // fade with it. Oldest coins leave first once the pocket is busy.
+    if (!isStatic) for (let i = dropped.length - 1; i >= 0; i--) {
+      const c = dropped[i]; const m = c.mesh;
+      if (!c.settled) {
+        c.vy -= 5.5 * dt; m.position.y += c.vy * dt;
+        m.position.x += c.vx * dt; m.position.z += c.vz * dt;
+        if (m.position.y <= c.rest) {
+          m.position.y = c.rest; c.vy = -c.vy * 0.32; c.vx *= 0.5; c.vz *= 0.5; c.bounces++;
+          if (Math.abs(c.vy) < 0.25 || c.bounces > 3) { c.vy = 0; c.settled = true; }
+        }
+        const air = clamp((m.position.y - c.rest) / 1.2, 0, 1);
+        m.rotation.x = c.tiltX * air; m.rotation.z = c.tiltZ * air; m.rotation.y += c.spin * dt;
+        const rr = Math.hypot(m.position.x, m.position.z);           // stay inside the pocket wall
+        if (rr > 0.72) { m.position.x *= 0.72 / rr; m.position.z *= 0.72 / rr; c.vx = -c.vx * 0.4; c.vz = -c.vz * 0.4; }
+      }
+    }
     applyCamera(view);
     applySet(vd);
     const o = override && PRESETS[override];
@@ -868,6 +914,32 @@ export function createScene(canvas, options = {}) {
     setPointer(nx, ny) { pointer.x = clamp(Number(nx) || 0, -1, 1); pointer.y = clamp(Number(ny) || 0, -1, 1); requestRender(); },
     setViewOverride(name) { override = (name && PRESETS[name]) ? name : null; requestRender(); },
     getAge() { return ageT; },
+    // Interaction ---------------------------------------------------------------------------------------
+    getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: trayGroup.visible && hideT < 0.5 && cur.vd > 0.5 }; },
+    dragStart() { drag.active = true; drag.vYaw = 0; drag.vElev = 0; requestRender(); },
+    drag(dx, dy, dt = 1 / 60) {                            // css px deltas; ~0.35° per px of yaw, 0.25° per px of elevation
+      if (reduced) return;
+      const dYaw = dx * 0.35, dEl = -dy * 0.25;
+      drag.yaw += dYaw; drag.elev = clamp(drag.elev + dEl, -70, 70);
+      const k = 1 / Math.max(dt, 1 / 240);                  // velocity estimate for the coast after release
+      drag.vYaw = drag.vYaw * 0.5 + (dYaw * k) * 0.5; drag.vElev = drag.vElev * 0.5 + (dEl * k) * 0.5;
+      requestRender();
+    },
+    dragEnd() { drag.active = false; drag.vYaw = clamp(drag.vYaw, -540, 540); drag.vElev = clamp(drag.vElev, -240, 240); requestRender(); },
+    kick(degPerSec) { if (!reduced) { drag.vYaw = clamp(drag.vYaw + degPerSec * cur.vd, -180, 180); requestRender(); } },
+    dropCoin() {
+      if (reduced && isStatic) return;
+      const brass = Math.random() < 0.6;
+      const mesh = new THREE.Mesh(brass ? coinGeoA : coinGeoB, brass ? brassP : nickel);
+      const h = brass ? 0.026 : 0.024, ang = Math.random() * Math.PI * 2, rad = 0.15 + Math.random() * 0.45;
+      mesh.position.set(Math.cos(ang) * rad, FLOOR_Y + 1.5, Math.sin(ang) * rad);
+      mesh.rotation.y = Math.random() * Math.PI; mesh.castShadow = true;
+      coinGroup.add(mesh);
+      dropped.push({ mesh, vy: -0.4, vx: (Math.random() - 0.5) * 0.5, vz: (Math.random() - 0.5) * 0.5, rest: FLOOR_Y + h / 2, settled: false, bounces: 0,
+        tiltX: (Math.random() - 0.5) * 1.6, tiltZ: (Math.random() - 0.5) * 1.6, spin: (Math.random() - 0.5) * 6 });
+      while (dropped.length > 10) { const old = dropped.shift(); coinGroup.remove(old.mesh); }
+      requestRender();
+    },
     setSpin(on) { spinning = !!on; if (!spinning && (isStatic || reduced)) spinAngle = 0; requestRender(); },
     resize(width, height, dpr = 1) {
       W = Math.max(1, width | 0); H = Math.max(1, height | 0); aspect = W / H;

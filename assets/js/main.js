@@ -86,8 +86,12 @@ function layoutGallery() {
   }
 }
 
+let lastScrollY = scrollY;
 function onScroll() {
   target = progressFor(scrollY);
+  // A fast scroll gives the tray a little spin, which coasts and settles.
+  const dy = scrollY - lastScrollY; lastScrollY = scrollY;
+  if (Math.abs(dy) > 1) scene?.kick(clamp(dy * 0.06, -60, 60));
   html.classList.toggle('is-scrolled', scrollY > 24);
   html.classList.toggle('is-end', scrollY > html.scrollHeight - innerHeight * 1.5);
   if (thumb) {
@@ -101,7 +105,7 @@ function onScroll() {
 function tick(now) {
   raf = 0;
   const dt = Math.min(250, now - last); last = now;
-  current = reducedMotion ? target : current + (target - current) * (1 - Math.exp(-dt / 110));
+  current = reducedMotion ? target : current + (target - current) * (1 - Math.exp(-dt / (smoothScroll ? 80 : 110)));
   if (Math.abs(target - current) < 0.0005) current = target;
   scene?.setProgress(current);
   scatter.forEach((l, i) => l.classList.toggle('is-on', !!scene && current > 0.19 + i * 0.03 && current < 0.34));
@@ -111,6 +115,39 @@ function onResize() {
   measure();
   scene?.resize(innerWidth, innerHeight, Math.min(devicePixelRatio || 1, 2));
   onScroll();
+}
+
+// --- Smooth wheel scrolling -----------------------------------------------------------------------------
+// Mouse wheels arrive in steps; easing the page towards the wheel target gives the choreography a continuous
+// input. Native positions are kept (no transform hijack), so sticky sections, anchors and observers all still
+// work. Keyboard, scrollbar and touch scrolling stay native and simply resync the target.
+const smoothScroll = matchMedia('(pointer: fine)').matches && !reducedMotion;
+if (smoothScroll) {
+  let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0;
+  // Frames normally arrive every 16 ms; the timer only steps in if a browser withholds them mid-scroll.
+  const schedule = () => { sRaf = requestAnimationFrame(step); clearTimeout(sTimer); sTimer = setTimeout(() => { if (sRaf) { cancelAnimationFrame(sRaf); step(); } }, 48); };
+  const maxY = () => html.scrollHeight - innerHeight;
+  const step = () => {
+    sRaf = 0; clearTimeout(sTimer); steps++;
+    const now = performance.now();
+    const dt = clamp(now - sLast, 0, 64); sLast = now;          // own clock: rAF timestamps can precede the wheel's
+    sCurrent += (sTarget - sCurrent) * (1 - Math.exp(-dt / 140));
+    if (Math.abs(sTarget - sCurrent) < 0.5) { sCurrent = sTarget; animating = false; }
+    else schedule();
+    window.scrollTo({ top: sCurrent, behavior: 'instant' });   // bypass CSS scroll-behavior: smooth, which would restart its own animation every frame
+  };
+  addEventListener('wheel', e => {
+    if (e.ctrlKey || e.metaKey) return;                      // browser zoom
+    e.preventDefault();
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+    if (!animating) { sTarget = sCurrent = scrollY; sLast = performance.now(); }
+    sTarget = clamp(sTarget + e.deltaY * unit, 0, maxY());
+    animating = true;
+    if (!sRaf) schedule();
+  }, { passive: false });
+  addEventListener('scroll', () => { if (!animating) sTarget = sCurrent = scrollY; }, { passive: true });
+  addEventListener('keydown', () => { if (animating) { cancelAnimationFrame(sRaf); clearTimeout(sTimer); sRaf = 0; animating = false; } });
+  if (new URLSearchParams(location.search).has('debug')) window.__smooth = () => ({ sTarget, sCurrent, animating, sRaf, steps, scrollY, maxY: maxY() });
 }
 
 measure();
@@ -265,6 +302,101 @@ spinButton?.addEventListener('click', () => {
   spinButton.setAttribute('aria-pressed', String(spinning));
   scene?.setSpin(spinning);
 });
+
+// --- Pointer interaction: cursor, drag-to-rotate, click-to-drop / click-to-flip, magnetic controls ----
+const finePointer = matchMedia('(pointer: fine)').matches;
+const dropButton = document.getElementById('dropCoin');
+dropButton?.addEventListener('click', () => scene?.dropCoin());
+if (scene && finePointer && !reducedMotion) {
+  const cursor = document.createElement('div');
+  cursor.className = 'cursor is-hidden'; cursor.setAttribute('aria-hidden', 'true');
+  const label = document.createElement('span'); label.className = 'cursor__label'; cursor.appendChild(label);
+  document.body.appendChild(cursor);
+  html.classList.add('has-cursor');
+  const LABELS = { drag: 'Drag', drop: 'Drop', flip: 'Flip' };
+  const pos = { x: innerWidth / 2, y: innerHeight / 2, cx: innerWidth / 2, cy: innerHeight / 2 };
+  let mode = null, overControl = false, inTray = false, cursorRaf = 0, down = null, lastMove = 0;
+
+  const interactive = el => !!el.closest?.('a, button, input, textarea, select, label, [role="button"]');
+  function modeAt(x, y, el) {
+    const section = el.closest?.('section');
+    let m = section?.dataset.cursor || null;
+    if (m && section.id === 'features') m = featuresActive && featureView === 'f1' ? 'drop' : 'drag';
+    const b = scene.getBounds();
+    inTray = !!m && b.visible && Math.hypot(x - b.x, y - b.y) < b.r * 1.08;
+    return inTray ? m : null;
+  }
+  function paint() {
+    cursorRaf = 0;
+    pos.cx += (pos.x - pos.cx) * 0.35; pos.cy += (pos.y - pos.cy) * 0.35;
+    cursor.style.left = pos.cx + 'px'; cursor.style.top = pos.cy + 'px';
+    if (Math.abs(pos.x - pos.cx) + Math.abs(pos.y - pos.cy) > 0.3) cursorRaf = requestAnimationFrame(paint);
+  }
+  addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+    pos.x = e.clientX; pos.y = e.clientY;
+    cursor.classList.remove('is-hidden');
+    if (down) {
+      const now = performance.now(), dt = Math.min(0.1, (now - lastMove) / 1000); lastMove = now;
+      const dx = e.clientX - down.lx, dy = e.clientY - down.ly; down.lx = e.clientX; down.ly = e.clientY;
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) down.moved = true;
+      scene.drag(dx, dy, dt);
+    } else {
+      overControl = interactive(e.target);
+      mode = overControl ? null : modeAt(e.clientX, e.clientY, e.target);
+      cursor.classList.toggle('is-link', overControl);
+      cursor.classList.toggle('is-tray', !!mode);
+      label.textContent = mode ? LABELS[mode] : '';
+    }
+    if (!cursorRaf) cursorRaf = requestAnimationFrame(paint);
+  }, { passive: true });
+  addEventListener('pointerdown', e => {
+    if (e.button !== 0 || (e.pointerType !== 'mouse' && e.pointerType !== 'pen')) return;
+    if (interactive(e.target) || !modeAt(e.clientX, e.clientY, e.target)) return;
+    e.preventDefault();
+    down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, mode };
+    lastMove = performance.now();
+    scene.dragStart();
+    document.body.classList.add('is-dragging');
+    cursor.classList.add('is-down');
+  });
+  const release = e => {
+    if (!down) return;
+    scene.dragEnd();
+    document.body.classList.remove('is-dragging');
+    cursor.classList.remove('is-down');
+    if (!down.moved) {
+      if (down.mode === 'drop') scene.dropCoin();
+      else if (down.mode === 'flip') flipButton?.click();
+    }
+    down = null;
+    if (e) { mode = modeAt(e.clientX, e.clientY, e.target); cursor.classList.toggle('is-tray', !!mode); label.textContent = mode ? LABELS[mode] : ''; }
+  };
+  addEventListener('pointerup', release);
+  addEventListener('pointercancel', () => release());
+  document.addEventListener('pointerleave', () => cursor.classList.add('is-hidden'));
+  document.documentElement.addEventListener('mouseleave', () => cursor.classList.add('is-hidden'));
+  addEventListener('blur', () => { cursor.classList.add('is-hidden'); release(); });
+
+  // Magnetic controls: pills and nav links lean a few pixels toward the pointer.
+  document.querySelectorAll('.btn, .nav__links a').forEach(el => {
+    el.addEventListener('pointermove', e => {
+      const r = el.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / r.width, dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+      el.style.transform = `translate(${dx * 8}px, ${dy * 6}px)`;
+    });
+    el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+  });
+  // Gallery plates tilt toward the pointer.
+  document.querySelectorAll('.plate').forEach(el => {
+    el.addEventListener('pointermove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(900px) rotateX(${(-y * 8).toFixed(2)}deg) rotateY(${(x * 10).toFixed(2)}deg) translateZ(8px)`;
+    });
+    el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+  });
+}
 
 // --- Notify form (no backend: this is a concept piece) ----------------------------------------------
 const form = document.getElementById('notify');

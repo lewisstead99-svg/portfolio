@@ -36,6 +36,13 @@ The page follows the beat structure of the reference site, section for section, 
   highlighted phrases in reviews. Never on a control.
 - **No shadows, no chrome.** Depth comes from the two-step surface stack (`#100904` → `#382416`) and from
   the render itself. Dividers are 1px dashed hairlines.
+- **It glides.** Mouse-wheel scrolling is eased towards its target (native positions, no transform hijack),
+  so the choreography receives a continuous input. Keyboard, scrollbar and touch stay native.
+- **It answers the hand.** A cream ring cursor names what the tray will do (Drag, Drop, Flip). Drag the tray
+  to turn it, with inertia; a fast scroll gives it a spin that settles. In the features beat you drop coins
+  into the pocket by clicking it; in the provenance beat you flip it over; in the macro beat the pointer pans
+  along the rim. Pills and nav links lean toward the pointer, gallery plates tilt. All of it is mouse-only
+  and off under reduced motion; touch keeps the scroll choreography.
 - **Degrades honestly.** Without WebGL the page shows static plates rendered from the same scene. Reduced
   motion is respected (no idle drift, no easing lag, no spin, no typing).
 
