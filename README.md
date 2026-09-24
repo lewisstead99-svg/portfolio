@@ -27,6 +27,10 @@ The page follows the beat structure of the reference site, section for section, 
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
 | 12 | Contact | Underline-only email field, ember "Built by" credit, the single filled pill, colophon. |
 
+- **Scroll-linked flights.** Every hand-over between beats is a blend driven by scroll position, not a
+  threshold: as the next section's top edge crosses its line the camera travels from the previous view to
+  the next over half a viewport, so the tray moves with the page and never hops. In the gallery it dives
+  into the photograph and sits exactly on the printed tray, then lifts out as the plates begin to slide.
 - **One continuous object.** A single Three.js scene renders the tray for the whole page and it is never
   hidden: every section has a place for it, and it flies between them. Sections either read the scroll
   position through keyframes or ask for a named camera preset; two presets are pinned to DOM rects (the O,

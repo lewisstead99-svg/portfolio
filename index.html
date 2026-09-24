@@ -122,12 +122,13 @@
     </section>
 
     <!-- 03 GALLERY — a giant line rolls across the screen, then a carousel of plates slides through the window -->
-    <section class="gallery" id="gallery" data-view="perch" data-nav="intro" data-cursor="drag">
+    <section class="gallery" id="gallery" data-view="photo" data-own="0.85" data-nav="intro" data-cursor="drag">
+      <div class="gallery__marker" data-view="perch" aria-hidden="true"></div>
       <div class="gallery__pin">
         <p class="gallery__kicker"><span class="label">So solid,</span><span class="gallery__small">it's furniture.</span></p>
         <h2 class="gallery__headline" id="marquee" aria-label="So solid, it's furniture.">it's furniture.</h2>
         <div class="gallery__track" id="track">
-          <figure class="plate plate--photo"><img src="./assets/img/plates/photo.jpg" alt="The HOLM tray on a cutting mat with pencils, a craft knife and a brass ruler"><figcaption>Nº 001 · On the mat</figcaption><span class="plate__dot"></span></figure>
+          <figure class="plate plate--photo"><img src="./assets/img/plates/photo.jpg" data-tray="0.56,0.54,0.665" alt="The HOLM tray on a cutting mat with pencils, a craft knife and a brass ruler"><figcaption>Nº 001 · On the mat</figcaption><span class="plate__dot"></span></figure>
           <figure class="plate plate--cream"><img src="./assets/img/plates/quarter.png" alt="The HOLM tray from three quarters"><figcaption>Nº 014 · The hall table</figcaption><span class="plate__dot"></span></figure>
           <figure class="plate plate--bark"><img src="./assets/img/plates/under.png" alt="The underside of the tray with its maker's stamp"><figcaption>Nº 037 · Underside</figcaption><span class="plate__dot"></span></figure>
           <figure class="plate plate--photo"><img src="./assets/img/plates/macro.jpg" alt="The walnut grain across the rim, close up"><figcaption>Nº 052 · Grain</figcaption><span class="plate__dot"></span></figure>
@@ -218,7 +219,7 @@
     </section>
 
     <!-- 06 FLIP — the number lives underneath -->
-    <section class="beat flip" id="flip" data-view="flipTop" data-flip-view="flip" data-nav="product" data-cursor="flip">
+    <section class="beat flip" id="flip" data-view="flipTop" data-flip-view="flip" data-own="0.3" data-nav="product" data-cursor="flip">
       <div class="beat__head">
         <p class="label">Provenance, simplified</p>
         <h2 class="heading heading--centre" data-split>Numbered by hand.</h2>

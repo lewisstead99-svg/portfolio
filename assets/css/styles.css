@@ -105,6 +105,7 @@ img, svg { display: block; }
 .is-ready .loader { opacity: 0; visibility: hidden; }
 
 .scene { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
+.is-front .scene { z-index: 5; }   /* gallery: the tray sits on the photograph, in front of the page */
 main, .nav, .serial, .progress, .cue { position: relative; z-index: 1; }
 
 .scatter { position: fixed; inset: 0; z-index: 1; pointer-events: none; text-transform: none; }
@@ -198,6 +199,7 @@ section { position: relative; min-height: var(--vh); }
 
 /* Gallery: pinned 200vh; the headline rolls, then the track slides */
 .gallery { height: 220vh; }
+.gallery__marker { position: absolute; top: 129vh; left: 0; width: 1px; height: 1px; pointer-events: none; }   /* its top crossing the centre lifts the tray out of the photograph as the plates slide */
 .gallery__pin { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .gallery__kicker { position: absolute; left: var(--gutter); top: 9%; z-index: 3; display: flex; flex-direction: column; gap: var(--spacing-8); opacity: 0; transition: opacity .5s var(--ease-out); }
 .gallery__small { font-size: var(--text-subheading); text-transform: none; font-weight: var(--weight-medium); }
@@ -205,7 +207,7 @@ section { position: relative; min-height: var(--vh); }
 .gallery__headline { position: absolute; left: 0; top: 50%; transform: translate(100vw, -50%); font-size: clamp(64px, 17vw, 300px); line-height: 1; text-transform: none; font-weight: var(--weight-medium); white-space: nowrap; will-change: transform; z-index: 1; }
 .gallery.is-settled .gallery__headline { opacity: 0; transition: opacity .4s; }
 .gallery__track { position: absolute; left: 50%; top: 50%; z-index: 2; display: flex; gap: var(--spacing-24); transform: translate(calc(-1 * var(--plate-w) / 2), -50%); will-change: transform; }
-:root { --plate-w: min(34vw, 50vh); --plate-h: 64vh; }
+:root { --plate-w: min(34vw, 48vh); --plate-h: calc(var(--plate-w) * 4 / 3); }   /* 3:4, the plate renders' own aspect, so nothing is cropped */
 .plate { position: relative; flex: 0 0 var(--plate-w); height: var(--plate-h); border: 1px dashed var(--color-cork-border); overflow: hidden; display: grid; place-items: center; }
 .plate img { width: 100%; height: 100%; object-fit: contain; }
 .plate:not(:first-child) { opacity: 0; transition: opacity .6s var(--ease-out); }
@@ -426,7 +428,7 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .reviews__col--mid { padding-left: 0; }
 }
 @media (max-width: 820px) {
-  :root { --object-col: 0px; --plate-w: 70vw; --plate-h: 60vh; }
+  :root { --object-col: 0px; --plate-w: min(70vw, 42vh); }
   .heading { font-size: 32px; }
   .body { font-size: 20px; line-height: 1.35; max-width: 32ch; }
   .reveal { padding: 96px var(--edge) 72px var(--gutter); }
@@ -455,7 +457,8 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .formula { right: var(--edge); bottom: auto; top: 72px; }
   .formula__math { font-size: var(--text-subheading); }
   .letters__row { font-size: 24vw; }
-  .beat { padding: 96px var(--edge) 40px var(--gutter); }
+  .beat { padding: 96px var(--edge) 40px var(--gutter); grid-template-rows: auto minmax(44vh, 1fr) auto; }
+  .beat__stage { min-height: 44vh; }
   .light__side { display: none; }
   .light__slot { right: 5%; top: 14%; width: 32vw; height: 32vw; }
   .strip { grid-template-columns: 1fr; }
@@ -465,7 +468,7 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .reviews__grid { grid-template-columns: 1fr; }
   .always { grid-template-columns: 1fr 1fr; }
   .always__tile { min-height: 40vh; }
-  .always__text { grid-column: 1 / -1; padding: 72px var(--edge) 72px var(--gutter); }
+  .always__text { grid-column: 1 / -1; order: -1; padding: 96px var(--edge) 48px var(--gutter); }   /* words first, then the tiles the tray lands in */
   .plan { max-width: 100%; }
 }
 @media (max-width: 480px) {

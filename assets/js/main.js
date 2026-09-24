@@ -190,12 +190,10 @@ const byId = Object.fromEntries(navLinks.map(a => [a.getAttribute('href').slice(
 
 // --- Camera overrides: one resolver for section presets, feature beats and the product pills -----------
 let sectionEl = null, featureView = null, featuresActive = false, pillView = null, pillsActive = false;
+let blendA = null, blendB = null, blendF = 1;
 let applyOverride = function () {
-  const view = pillsActive && pillView ? pillView
-    : featuresActive ? featureView
-    : sectionEl ? (sectionEl.dataset.view || null)
-    : null;
-  scene?.setViewOverride(view);
+  if (pillsActive && pillView) scene?.setViewOverride(pillView);
+  else scene?.setViewBlend(blendA, blendB, blendF);
 };
 
 // Pinned features.
@@ -244,46 +242,68 @@ flipButton?.addEventListener('click', () => {
   applyOverride();
 });
 
-// --- Centre-line tracking ----------------------------------------------------------------------------
-// Which section owns the camera, which feature beat is on, which nav item is current and whether the light
-// interlude sits under the nav are all read from geometry on every scroll. (IntersectionObserver rootMargin
-// is ignored inside cross-origin iframes, and this page may well be embedded in one.)
-const viewSections = [...document.querySelectorAll('section[data-view]')];
-const navSections = [...document.querySelectorAll('[data-nav]')];
-const featuresEl = document.getElementById('features');
+// --- Scroll-linked beats ----------------------------------------------------------------------------
+// Every section (and each feature marker) is a beat with a view. As the next beat's top edge crosses its
+// line (half the viewport by default), the camera blends from the previous view to the next over half a
+// viewport of scroll, so the tray travels with the page instead of hopping when a threshold is crossed.
+// Read from geometry on every scroll: IntersectionObserver root margins are ignored in cross-origin iframes.
+const beats = [];
+document.querySelectorAll('main > section').forEach(sec => {
+  if (sec.id === 'features') { markers.forEach((m, i) => beats.push({ el: i === 0 ? sec : m, view: () => m.dataset.view || null, own: i === 0 ? 0.55 : 0.5 })); return; }   // the first beat is owned by the section itself, so the blend begins as the panel scrolls in
+  beats.push({ el: sec, view: () => sec.dataset.view || null, own: Number(sec.dataset.own || 0.5) });
+  const extra = sec.querySelector('.gallery__marker');
+  if (extra) beats.push({ el: extra, view: () => extra.dataset.view || null, own: 0.5 });
+});
+const navLinksById = byId;
 const lightEl = document.querySelector('.light');
 const letterO = document.querySelector('.letters__o');
 const liveTile = document.querySelector('.always__tile--live');
 const lightSlot = document.querySelector('.light__slot');
+const photoImg = document.querySelector('.plate--photo img[data-tray]');
+const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
 let navActive = null;
 function trackSections() {
-  const mid = innerHeight / 2;
-  const at = el => { const r = el.getBoundingClientRect(); return r.top <= mid && r.bottom > mid; };
-  sectionEl = viewSections.find(at) || null;
-  featuresActive = !!featuresEl && at(featuresEl);
-  if (featuresActive) { const m = markers.find(at); if (m && m.dataset.step !== currentStep) setStep(m.dataset.step); }
-  // Dynamic presets follow a DOM rect: the O of HOLM, and the cream tile in "Always on".
+  const vh = innerHeight, range = vh * 0.5;
+  let a = null, b = null, f = 1, dom = beats[0];
+  for (let k = 1; k < beats.length; k++) {
+    const bt = beats[k];
+    const fk = clamp(0.5 - (bt.el.getBoundingClientRect().top - bt.own * vh) / range, 0, 1);
+    if (fk <= 0) break;
+    a = beats[k - 1].view(); b = bt.view(); f = fk;
+    if (fk >= 0.5) dom = bt;
+    if (fk < 1) break;
+  }
+  blendA = a; blendB = b; blendF = f;
+  const domView = dom.view();
+  const section = dom.el.closest('section');
+  sectionEl = section;
+  featuresActive = section?.id === 'features';
+  if (featuresActive) { const st = dom.el.dataset.step || '1'; if (st !== currentStep) setStep(st); }
+  featureView = featuresActive ? domView : null;
+  // Rect-pinned views: where the printed tray sits in the photograph, the O of HOLM, the longevity slot, the live tile.
   if (scene) {
-    if (sectionEl?.id === 'letters' && letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, r.width * 0.84); }
-    else if (sectionEl?.id === 'always' && liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
-    else if (sectionEl?.id === 'longevity' && lightSlot) { const r = lightSlot.getBoundingClientRect(); scene.setFocus(r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.96); }
-    // Cream grounds the scene paints behind the tray, aligned to the DOM rects they stand in for.
+    if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(); scene.setFocus('photo', r.left + photoFrac[0] * r.width, r.top + photoFrac[1] * r.height, photoFrac[2] * r.width); }
+    if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.84); }
+    if (lightSlot) { const r = lightSlot.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.96); }
+    if (liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus('tile', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
     const grounds = [];
     for (const el of [lightEl, liveTile]) {
       if (!el) continue;
       const r = el.getBoundingClientRect();
-      if (r.bottom > 0 && r.top < innerHeight) grounds.push(el === liveTile ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right } : { top: r.top, bottom: r.bottom });
+      if (r.bottom > 0 && r.top < vh) grounds.push(el === liveTile ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right } : { top: r.top, bottom: r.bottom });
     }
     scene.setBackdrops(grounds);
   }
+  // In the gallery the tray is drawn in front of the page so it can sit on the photograph.
+  html.classList.toggle('is-front', domView === 'photo' || domView === 'perch');
   applyOverride();
-  const nav = navSections.find(at)?.dataset.nav || null;
+  const nav = dom.el.closest('[data-nav]')?.dataset.nav || null;
   if (nav !== navActive) {
     navActive = nav;
-    navLinks.forEach(a => a.removeAttribute('aria-current'));
-    if (nav && byId[nav]) byId[nav].setAttribute('aria-current', 'true');
+    navLinks.forEach(l => l.removeAttribute('aria-current'));
+    if (nav && navLinksById[nav]) navLinksById[nav].setAttribute('aria-current', 'true');
   }
-  if (lightEl) { const r = lightEl.getBoundingClientRect(); html.classList.toggle('is-light', r.top <= innerHeight * 0.15 && r.bottom > innerHeight * 0.08); }
+  if (lightEl) { const r = lightEl.getBoundingClientRect(); html.classList.toggle('is-light', r.top <= vh * 0.15 && r.bottom > vh * 0.08); }
 }
 trackSections();
 

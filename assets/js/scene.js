@@ -696,7 +696,9 @@ export function createScene(canvas, options = {}) {
   let lastProgress = 0;
   const bounds = { x: 0, y: 0, r: 0 };
   const _proj = new THREE.Vector3();
-  const focus = { nx: 0, ny: 0, width: 0.2 };                  // screen-space target for dynamic presets (css px → fractions)
+  const focus = {};                                            // name → { nx, ny, width } screen-space targets for dynamic presets
+  let blend = { a: null, b: null, f: 1 };                       // scroll-linked transition between two views (null = keyframes)
+  const _A = { elev: 0, width: 0, nx: 0, ny: 0, vd: 0 }, _B = { elev: 0, width: 0, nx: 0, ny: 0, vd: 0 };
   // Backdrops: cream grounds the scene paints behind the tray, pixel-aligned to DOM rects the page passes in
   // (the longevity section, the live tile). Camera-attached planes just beyond the tray, unlit and untouched
   // by tone mapping so they match the page's #ffedd7 exactly.
@@ -735,18 +737,19 @@ export function createScene(canvas, options = {}) {
     f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, age: true },    // the walnut deepens and recovers on a slow cycle
     // Later beats: the underside flip, a macro across the rim, a small 3/4 between review columns, and 'away'
     // (tray hidden) for sections that paint their own ground or carry the tray as plates.
-    flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0 },
-    flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0 },
-    statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0 },
+    flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0, pwidth: 0.44, pnx: 0, pny: -0.42 },   // portrait: below the centred copy
+    flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0, pwidth: 0.40, pnx: 0, pny: -0.42 },
+    statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0, pwidth: 0.44, pnx: 0, pny: 0.10 },
     // The tray is the thread through the whole page, so nothing ever hides it: it perches above the gallery,
     // becomes the O in HOLM (dynamic: the page passes the letter's on-screen rect), floats over the cream
     // ground of the longevity section and sits inside the cream tile of "Always on".
-    perch:  { elev: 89.5, width: 0.085, nx: 0, ny: 0.80, pwidth: 0.15, pnx: 0, pny: 0.74 },
+    perch:  { elev: 89.5, width: 0.085, nx: 0, ny: 0.86, pwidth: 0.13, pnx: 0.62, pny: 0.72 },   // portrait: beside the kicker, above the plates
     light:  { elev: 34,   dynamic: true },   // pinned to a layout slot in the longevity hero so it scrolls with its text
     letterO:{ elev: 89.5, dynamic: true },
     tile:   { elev: 89.5, dynamic: true },
+    photo:  { elev: 83,   dynamic: true },   // sits exactly on the printed tray in the gallery's photograph
     macro:  { elev: 9,    width: 1.35, nx: 0.10, ny: -0.10, pnx: 0.05, pny: 0, pointerYaw: 22, pointerElev: 5, raw: true },   // the pointer sweeps along the rim; width passes through untouched
-    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.36, pnx: 0.85, pny: 0.55 },   // portrait: the reviews stack over the centre, so the tray peeks in from the right edge
+    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.40, pnx: 0.70, pny: 0.62 },   // portrait: the reviews stack over the centre, so the tray sits top-right
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
   const widthKeys = K.width.map(([p, v]) => [p, v]);                  // hero entries re-capped on resize
@@ -764,17 +767,26 @@ export function createScene(canvas, options = {}) {
   function targetView(p, out) {
     out.elev = track(K.elev, p); out.yaw = track(K.yaw, p); out.width = track(widthKeys, p);
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
-    const o = override && PRESETS[override];
-    if (o) {
-      out.elev = o.elev; out.vd = 1;
-      const portrait = aspect < 1;
-      if (o.dynamic) { out.width = focus.width; out.nx = focus.nx; out.ny = focus.ny; }
-      else {
-        out.width = portrait && o.pwidth != null ? o.pwidth / 1.75 : o.width;   // pre-compensates the portrait multiplier
-        out.nx = portrait && o.pnx != null ? o.pnx : o.nx; out.ny = portrait && o.pny != null ? o.pny : o.ny;
-      }
+    if (blend.a || blend.b) {
+      stateOf(blend.a, out, _A); stateOf(blend.b, out, _B);
+      const f = smooth(blend.f);
+      out.elev = lerp(_A.elev, _B.elev, f); out.width = lerp(_A.width, _B.width, f);
+      out.nx = lerp(_A.nx, _B.nx, f); out.ny = lerp(_A.ny, _B.ny, f); out.vd = lerp(_A.vd, _B.vd, f);
     }
     return out;
+  }
+  // A named view's camera state; null means "whatever the scroll keyframes say" (the base already in `out`).
+  function stateOf(name, base, dst) {
+    const o = name && PRESETS[name];
+    if (!o) { dst.elev = base.elev; dst.width = base.width; dst.nx = base.nx; dst.ny = base.ny; dst.vd = base.vd; return dst; }
+    dst.elev = o.elev; dst.vd = 1;
+    const portrait = aspect < 1;
+    if (o.dynamic) { const fo = focus[name] || { nx: 0, ny: 0, width: 0.2 }; dst.width = fo.width; dst.nx = fo.nx; dst.ny = fo.ny; }
+    else {
+      dst.width = portrait && o.pwidth != null ? o.pwidth / 1.75 : o.width;   // pre-compensates the portrait multiplier
+      dst.nx = portrait && o.pnx != null ? o.pnx : o.nx; dst.ny = portrait && o.pny != null ? o.pny : o.ny;
+    }
+    return dst;
   }
 
   const _dir = new THREE.Vector3(), _right = new THREE.Vector3(), _up = new THREE.Vector3();
@@ -783,7 +795,6 @@ export function createScene(canvas, options = {}) {
   function applyCamera(v) {
     let frac = v.width;
     if (aspect < 1 && frac <= 1) frac = Math.min(frac * 1.75, 0.72);   // portrait: the tray owns the width (macro shots pass through)
-    if (v.dyn) frac = v.width;                                          // dynamic presets are already exact screen fractions
     const tanH = Math.tan(FOV / 2 * DEG);
     const dist = TRAY_D / (frac * aspect * 2 * tanH);
     const el = clamp(v.elev, -60, 89.5) * DEG, yaw = v.yaw * DEG;
@@ -846,7 +857,7 @@ export function createScene(canvas, options = {}) {
     const snap = first || reduced || !running;               // static / reduced motion / on-demand frames: no damping
     const a = snap ? 1 : 1 - Math.exp(-dt * 6.5);
     const oCam = override && PRESETS[override];
-    const aCam = snap ? 1 : 1 - Math.exp(-dt * (oCam ? (oCam.dynamic ? 10 : 2.6) : 6.5));   // preset moves take their time; rect-pinned presets keep up with the scroll
+    const aCam = snap ? 1 : 1 - Math.exp(-dt * (oCam && oCam.dynamic ? 10 : 6.5));   // targets are scroll-linked, so the camera follows closely; rect-pinned views keep up
     for (const f of FIELDS) cur[f] += (tgt[f] - cur[f]) * (f === 'vd' ? a : aCam);   // the set's fade always runs at the quick rate
     pointerCur.x += (pointer.x - pointerCur.x) * a; pointerCur.y += (pointer.y - pointerCur.y) * a;
     first = false;
@@ -884,7 +895,7 @@ export function createScene(canvas, options = {}) {
     view.width = cur.width;
     view.nx = cur.nx + pointerCur.x * (0.006 * vd + 0.014 * (1 - vd));
     view.ny = cur.ny + bob - pointerCur.y * (0.006 * vd + 0.010 * (1 - vd));
-    view.vd = vd; view.dyn = !!(oNow && oNow.dynamic);
+    view.vd = vd;
     // Dropped coins: fall, bounce twice, settle with a small wobble; they share the beat's coin materials so they
     // fade with it. Oldest coins leave first once the pocket is busy.
     if (!isStatic) for (let i = dropped.length - 1; i >= 0; i--) {
@@ -939,13 +950,20 @@ export function createScene(canvas, options = {}) {
   const api = {
     setProgress(p) { progress = clamp(Number(p) || 0, 0, 1); requestRender(); },
     setPointer(nx, ny) { pointer.x = clamp(Number(nx) || 0, -1, 1); pointer.y = clamp(Number(ny) || 0, -1, 1); requestRender(); },
-    setViewOverride(name) { override = (name && PRESETS[name]) ? name : null; requestRender(); },
+    setViewOverride(name) { const n = (name && PRESETS[name]) ? name : null; blend = { a: n, b: n, f: 1 }; override = n; requestRender(); },
+    // Scroll-linked transition: f in [0,1] from view a to view b (either may be null for the scroll keyframes).
+    setViewBlend(a, b, f) {
+      const A = (a && PRESETS[a]) ? a : null, B = (b && PRESETS[b]) ? b : null;
+      blend = { a: A, b: B, f: clamp(Number(f) || 0, 0, 1) };
+      override = blend.f >= 0.5 ? B : A;
+      requestRender();
+    },
     getAge() { return ageT; },
     // Interaction ---------------------------------------------------------------------------------------
     getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: cur.vd > 0.5 }; },
-    // Screen-space target for dynamic presets: centre (css px) and diameter (css px). Portrait pre-compensation
-    // keeps the diameter exact under the 1.75 multiplier.
-    setFocus(x, y, d) { focus.nx = (x / W - 0.5) * 2; focus.ny = -(y / H - 0.5) * 2; focus.width = clamp(d / W, 0.02, 1); requestRender(); },
+    // Screen-space target for a dynamic view: centre (css px) and diameter (css px). Pre-compensated for the
+    // portrait multiplier so the diameter lands exactly.
+    setFocus(name, x, y, d) { focus[name] = { nx: (x / W - 0.5) * 2, ny: -(y / H - 0.5) * 2, width: clamp(d / W, 0.02, 1) / (aspect < 1 ? 1.75 : 1) }; requestRender(); },
     // Cream grounds behind the tray, as css-px rects {top, bottom, left?, right?}; pass [] to clear.
     setBackdrops(list) { backdrops.length = 0; for (const b of (list || []).slice(0, 2)) if (b && b.bottom > b.top) backdrops.push(b); requestRender(); },
     dragStart() { drag.active = true; drag.vYaw = 0; drag.vElev = 0; requestRender(); },
