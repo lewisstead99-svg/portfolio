@@ -199,7 +199,7 @@ section { position: relative; min-height: var(--vh); }
 
 /* Gallery: pinned 200vh; the headline rolls, then the track slides */
 .gallery { height: 220vh; }
-.gallery__marker { position: absolute; top: 129vh; left: 0; width: 1px; height: 1px; pointer-events: none; }   /* its top crossing the centre lifts the tray out of the photograph as the plates slide */
+.gallery__marker { position: absolute; top: 122vh; left: 0; width: 1px; height: 1px; pointer-events: none; }   /* its top crossing the centre lifts the tray out of the photograph as the plates slide */
 .gallery__pin { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .gallery__kicker { position: absolute; left: var(--gutter); top: 9%; z-index: 3; display: flex; flex-direction: column; gap: var(--spacing-8); opacity: 0; transition: opacity .5s var(--ease-out); }
 .gallery__small { font-size: var(--text-subheading); text-transform: none; font-weight: var(--weight-medium); }

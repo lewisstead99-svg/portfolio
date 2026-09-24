@@ -123,8 +123,9 @@ function onResize() {
 // input. Native positions are kept (no transform hijack), so sticky sections, anchors and observers all still
 // work. Keyboard, scrollbar and touch scrolling stay native and simply resync the target.
 const smoothScroll = matchMedia('(pointer: fine)').matches && !reducedMotion;
+let cancelWheel = () => {};
 if (smoothScroll) {
-  let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0;
+  let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0, sWritten = scrollY;
   // Frames normally arrive every 16 ms; the timer only steps in if a browser withholds them mid-scroll.
   const schedule = () => { sRaf = requestAnimationFrame(step); clearTimeout(sTimer); sTimer = setTimeout(() => { if (sRaf) { cancelAnimationFrame(sRaf); step(); } }, 48); };
   const maxY = () => html.scrollHeight - innerHeight;
@@ -135,6 +136,7 @@ if (smoothScroll) {
     sCurrent += (sTarget - sCurrent) * (1 - Math.exp(-dt / 140));
     if (Math.abs(sTarget - sCurrent) < 0.5) { sCurrent = sTarget; animating = false; }
     else schedule();
+    sWritten = sCurrent;
     window.scrollTo({ top: sCurrent, behavior: 'instant' });   // bypass CSS scroll-behavior: smooth, which would restart its own animation every frame
   };
   addEventListener('wheel', e => {
@@ -146,9 +148,19 @@ if (smoothScroll) {
     animating = true;
     if (!sRaf) schedule();
   }, { passive: false });
-  addEventListener('scroll', () => { if (!animating) sTarget = sCurrent = scrollY; }, { passive: true });
-  addEventListener('keydown', () => { if (animating) { cancelAnimationFrame(sRaf); clearTimeout(sTimer); sRaf = 0; animating = false; } });
+  addEventListener('scroll', () => {
+    // A scroll we did not write (anchor link, keyboard, script) takes over: stop easing and resync.
+    if (animating && Math.abs(scrollY - sWritten) > 2) { cancelAnimationFrame(sRaf); clearTimeout(sTimer); sRaf = 0; animating = false; }
+    if (!animating) sTarget = sCurrent = sWritten = scrollY;
+  }, { passive: true });
+  cancelWheel = () => { if (animating) { cancelAnimationFrame(sRaf); clearTimeout(sTimer); sRaf = 0; animating = false; } };
+  addEventListener('keydown', cancelWheel);
+  // Anchor links and hash changes must win over an in-flight wheel easing.
+  document.addEventListener('click', e => { if (e.target.closest?.('a[href^="#"]')) cancelWheel(); }, true);
+  addEventListener('hashchange', cancelWheel);
   if (new URLSearchParams(location.search).has('debug')) window.__smooth = () => ({ sTarget, sCurrent, animating, sRaf, steps, scrollY, maxY: maxY() });
+}
+if (new URLSearchParams(location.search).has('debug')) { window.__scene = scene; window.__track = () => trackSections();
 }
 
 measure();
@@ -191,9 +203,9 @@ const byId = Object.fromEntries(navLinks.map(a => [a.getAttribute('href').slice(
 // --- Camera overrides: one resolver for section presets, feature beats and the product pills -----------
 let sectionEl = null, featureView = null, featuresActive = false, pillView = null, pillsActive = false;
 let blendA = null, blendB = null, blendF = 1;
-let applyOverride = function () {
-  if (pillsActive && pillView) scene?.setViewOverride(pillView);
-  else scene?.setViewBlend(blendA, blendB, blendF);
+let applyOverride = function (animate = false) {
+  if (pillsActive && pillView) scene?.setViewOverride(pillView, animate);
+  else scene?.setViewBlend(blendA, blendB, blendF, animate);
 };
 
 // Pinned features.
@@ -214,8 +226,9 @@ if (markers.length) {
   let ageRaf = 0;
   const ageTick = () => { ageRaf = 0; if (!marker || !scene) return; marker.style.top = (scene.getAge?.() ?? 0) * 100 + '%'; if (featuresActive && featureView === 'f3') ageRaf = requestAnimationFrame(ageTick); };
   const prevApply = applyOverride;
-  applyOverride = () => { prevApply(); if (featuresActive && featureView === 'f3' && !ageRaf) ageRaf = requestAnimationFrame(ageTick); };
+  applyOverride = (animate = false) => { prevApply(animate); if (featuresActive && featureView === 'f3' && !ageRaf) ageRaf = requestAnimationFrame(ageTick); };
   gotoButtons.forEach(b => b.addEventListener('click', () => {
+    cancelWheel();
     markers.find(x => x.dataset.step === b.dataset.goto)?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
   }));
   setStep(1);
@@ -226,11 +239,11 @@ const pillButtons = [...document.querySelectorAll('[data-pill]')];
 function setPill(name) {
   pillView = name;
   pillButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pill === name)));
-  applyOverride();
+  applyOverride(true);
 }
 pillButtons.forEach(b => b.addEventListener('click', () => setPill(pillView === b.dataset.pill ? null : b.dataset.pill)));
 const product = document.getElementById('product');
-if (product) new IntersectionObserver(([e]) => { pillsActive = e.isIntersecting; if (!pillsActive && pillView) setPill(null); else applyOverride(); }, { threshold: 0 }).observe(product);
+if (product) new IntersectionObserver(([e]) => { pillsActive = e.isIntersecting; if (!pillsActive && pillView) setPill(null); else applyOverride(true); }, { threshold: 0 }).observe(product);
 
 // Flip beat: the button swaps the section's preset between top and the underside.
 const flipButton = document.getElementById('flipButton');
@@ -239,7 +252,7 @@ flipButton?.addEventListener('click', () => {
   const on = flipButton.getAttribute('aria-pressed') !== 'true';
   flipButton.setAttribute('aria-pressed', String(on));
   flipSection.dataset.view = on ? (flipSection.dataset.flipView || 'flip') : 'flipTop';
-  applyOverride();
+  animateNext = true; trackSections();                         // re-resolve the beat with the new view, easing into it
 });
 
 // --- Scroll-linked beats ----------------------------------------------------------------------------
@@ -261,7 +274,7 @@ const liveTile = document.querySelector('.always__tile--live');
 const lightSlot = document.querySelector('.light__slot');
 const photoImg = document.querySelector('.plate--photo img[data-tray]');
 const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
-let navActive = null;
+let navActive = null, animateNext = false;
 function trackSections() {
   const vh = innerHeight, range = vh * 0.5;
   let a = null, b = null, f = 1, dom = beats[0];
@@ -296,7 +309,7 @@ function trackSections() {
   }
   // In the gallery the tray is drawn in front of the page so it can sit on the photograph.
   html.classList.toggle('is-front', domView === 'photo' || domView === 'perch');
-  applyOverride();
+  applyOverride(animateNext); animateNext = false;
   const nav = dom.el.closest('[data-nav]')?.dataset.nav || null;
   if (nav !== navActive) {
     navActive = nav;
@@ -426,7 +439,7 @@ if (scene && finePointer && !reducedMotion) {
     el.addEventListener('pointerleave', () => { el.style.transform = ''; });
   });
   // Gallery plates tilt toward the pointer.
-  document.querySelectorAll('.plate').forEach(el => {
+  document.querySelectorAll('.plate:not(.plate--photo)').forEach(el => {
     el.addEventListener('pointermove', e => {
       const r = el.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
