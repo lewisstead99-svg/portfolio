@@ -217,6 +217,10 @@ section { position: relative; min-height: var(--vh); }
 .plate--olive { background: var(--color-mat); }
 .plate--drift { background: var(--color-driftwood); }
 .plate--void { background: var(--color-walnut-shadow); }
+.plate--photo img { object-fit: cover; }
+.plate--poster { padding: var(--spacing-24); display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; }
+.poster__line { font-size: clamp(28px, 2.6vw, 44px); line-height: .95; text-align: left; }
+.poster__foot { width: 100%; display: flex; justify-content: space-between; font-size: var(--text-2xs); line-height: 1; }
 .plate__ask { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-14); background: var(--color-walnut-shadow); font-size: var(--text-2xs); }
 .btn--tiny { padding: 6px var(--spacing-10); font-size: var(--text-2xs); }
 
@@ -250,6 +254,7 @@ section { position: relative; min-height: var(--vh); }
 .gauge__label { position: absolute; right: var(--spacing-12); white-space: nowrap; }
 .gauge__label--top { top: 0; } .gauge__label--mid { top: 50%; transform: translateY(-50%); } .gauge__label--bottom { bottom: 0; }
 .gauge__label::after { content: ""; position: absolute; right: calc(-1 * var(--spacing-12)); top: 50%; width: 8px; border-top: 1px solid var(--color-warm-cream); }
+.gauge__marker { position: absolute; right: -3px; top: 0; width: 9px; height: 9px; border-radius: var(--radius-full); background: var(--color-warm-cream); transform: translateY(-50%); }
 .formula { position: absolute; right: var(--edge); bottom: var(--spacing-24); text-align: right; }
 .formula__row { display: flex; flex-direction: column; align-items: flex-end; gap: var(--spacing-8); }
 .formula__math { font-family: var(--font-math); font-style: italic; text-transform: none; font-size: var(--text-heading-sm); line-height: 1.1; white-space: nowrap; }
@@ -287,7 +292,11 @@ section { position: relative; min-height: var(--vh); }
 
 /* Light interlude */
 .light { background: var(--color-warm-cream); color: var(--color-walnut-shadow); display: flex; flex-direction: column; }
-.light__hero { position: relative; min-height: var(--vh); display: grid; place-content: center; justify-items: center; gap: var(--spacing-24); padding: 120px var(--edge) 120px var(--gutter); text-align: center; }
+.light__hero { position: relative; min-height: var(--vh); display: grid; place-content: center; justify-items: center; gap: var(--spacing-24); padding: 120px var(--edge) 120px var(--gutter); text-align: center; overflow: hidden; }
+/* Dappled daylight on the cream ground: two soft pools that drift, the way leaf shadow moves on a desk. */
+.light__hero::before { content: ""; position: absolute; inset: -20%; pointer-events: none; background: radial-gradient(38% 30% at 28% 32%, rgba(16, 9, 4, .11), transparent 70%), radial-gradient(30% 42% at 74% 62%, rgba(16, 9, 4, .09), transparent 70%), radial-gradient(22% 18% at 55% 20%, rgba(16, 9, 4, .06), transparent 70%); animation: dapple 22s ease-in-out infinite alternate; }
+.light__hero > * { position: relative; }
+@keyframes dapple { from { transform: translate(0, 0) scale(1); } to { transform: translate(-4%, 3%) scale(1.06); } }
 .light__top { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); }
 .light__side { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); }
 .light__word { font-size: clamp(64px, 15vw, 260px); line-height: .95; text-transform: none; font-weight: var(--weight-medium); }
@@ -444,5 +453,6 @@ section { position: relative; min-height: var(--vh); }
   .reveal .label, .reveal .body, .reveal .specs, .reveal .price, .reveal .field, .reveal .credits > *, .reveal .plan, .pin .pills, .beat__body, .beat__foot, .statement__foot, .statement__note, .reviews__grid, .light__body, .strip, .always__tile, .always__text .label { opacity: 1; transform: none; transition: none; }
   .loader { transition: none; }
   .loader__fill { animation: none; width: 100%; }
+  .light__hero::before { animation: none; }
   .display .caret { animation: none; }
 }

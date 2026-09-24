@@ -164,13 +164,13 @@ const byId = Object.fromEntries(navLinks.map(a => [a.getAttribute('href').slice(
 
 // --- Camera overrides: one resolver for section presets, feature beats and the product pills -----------
 let sectionEl = null, featureView = null, featuresActive = false, pillView = null, pillsActive = false;
-function applyOverride() {
+let applyOverride = function () {
   const view = pillsActive && pillView ? pillView
     : featuresActive ? featureView
     : sectionEl ? (sectionEl.dataset.view || null)
     : null;
   scene?.setViewOverride(view);
-}
+};
 {
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => {
@@ -199,6 +199,12 @@ if (markers.length) {
   }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
   markers.forEach(m => io.observe(m));
   new IntersectionObserver(([e]) => { featuresActive = e.isIntersecting; applyOverride(); }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 }).observe(document.getElementById('features'));
+  // The ageing gauge follows the scene's darkening cycle while beat 3 is on.
+  const marker = document.getElementById('ageMarker');
+  let ageRaf = 0;
+  const ageTick = () => { ageRaf = 0; if (!marker || !scene) return; marker.style.top = (scene.getAge?.() ?? 0) * 100 + '%'; if (featuresActive && featureView === 'f3') ageRaf = requestAnimationFrame(ageTick); };
+  const prevApply = applyOverride;
+  applyOverride = () => { prevApply(); if (featuresActive && featureView === 'f3' && !ageRaf) ageRaf = requestAnimationFrame(ageTick); };
   gotoButtons.forEach(b => b.addEventListener('click', () => {
     markers.find(x => x.dataset.step === b.dataset.goto)?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
   }));

@@ -603,14 +603,26 @@ export function createScene(canvas, options = {}) {
   // The plane is far larger than any frame ever shows (the hero frames ≈ 5.3 × 3.3 units on desktop, the
   // portrait top-of-frame ray lands ≈ 3.5 units out) and its alpha dissolves to zero well inside its edge,
   // so no straight seam or corner of the "canvas" can slide into view while the camera drops through LIFT.
-  const MAT = 14.0;
-  const matTex = tex(makeMatCanvas(3072, MAT), { anisotropy: Math.min(8, maxAniso) });     // ≈ 22 px/cm
-  const matAlpha = tex(makeMatAlphaCanvas(512, MAT, 4.8, 6.6), { srgb: false });
+  // A desk under everything: the tray's own walnut canvas, tiled and lifted towards oak, dissolving to
+  // nothing well inside its edge so no seam can slide into view while the camera drops through LIFT.
+  const DESK = 14.0;
+  const deskMap = woodMap.clone(); deskMap.wrapS = deskMap.wrapT = THREE.RepeatWrapping; deskMap.repeat.set(4, 4); deskMap.rotation = Math.PI / 2; deskMap.needsUpdate = true;
+  const deskAlpha = tex(makeMatAlphaCanvas(512, DESK, 4.6, 6.6), { srgb: false });
+  const deskMat = new THREE.MeshStandardMaterial({ map: deskMap, alphaMap: deskAlpha, color: new THREE.Color().setRGB(1.9, 1.55, 1.15), roughness: 0.72, metalness: 0, transparent: true, envMapIntensity: 0.3 });
+  const desk = new THREE.Mesh(new THREE.PlaneGeometry(DESK, DESK), deskMat);
+  desk.rotation.x = -Math.PI / 2; desk.position.y = -0.034; desk.receiveShadow = true;
+  matGroup.add(desk);
+  // The cutting mat itself: an A2-ish slab, 3 mm thick, laid at a slight angle so the desk shows at the
+  // left third and the top-left corner where the wordmark sits.
+  const MAT_W = 5.2, MAT_D = 3.6, MAT_T = 0.03;
+  const matTex = tex(makeMatCanvas(3072, MAT_W), { anisotropy: Math.min(8, maxAniso) });    // ≈ 59 px/cm
+  matTex.wrapS = matTex.wrapT = THREE.ClampToEdgeWrapping; matTex.repeat.set(1, MAT_D / MAT_W); matTex.needsUpdate = true;
   // colour multiplier calibrated from rendered pixels so the lit mat beside the tray measures ≈ #445231
-  const matMat = new THREE.MeshStandardMaterial({ map: matTex, alphaMap: matAlpha, color: new THREE.Color().setRGB(1.12, 1.44, 1.62), roughness: 0.92, metalness: 0, transparent: true, envMapIntensity: 0.35 });
-  const mat = new THREE.Mesh(new THREE.PlaneGeometry(MAT, MAT), matMat);
-  mat.rotation.x = -Math.PI / 2;
-  mat.receiveShadow = true;
+  const matMat = new THREE.MeshStandardMaterial({ map: matTex, color: new THREE.Color().setRGB(1.12, 1.44, 1.62), roughness: 0.92, metalness: 0, transparent: true, envMapIntensity: 0.35 });
+  const matEdge = new THREE.MeshStandardMaterial({ color: '#1d2b20', roughness: 0.95, metalness: 0, transparent: true });
+  const mat = new THREE.Mesh(new THREE.BoxGeometry(MAT_W, MAT_T, MAT_D), [matEdge, matEdge, matMat, matEdge, matEdge, matEdge]);
+  mat.position.set(0.35, -MAT_T / 2, 0.15); mat.rotation.y = -11 * DEG;
+  mat.receiveShadow = true; mat.castShadow = true;
   matGroup.add(mat);
   const blobMat = new THREE.MeshBasicMaterial({ map: tex(makeBlobCanvas(256)), transparent: true, depthWrite: false, opacity: 0.42 });
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(2.45, 2.45), blobMat);
@@ -649,7 +661,7 @@ export function createScene(canvas, options = {}) {
   const fadeMats = [];
   matGroup.traverse((o) => {
     if (o.isMesh) {
-      o.castShadow = o !== mat && o !== blob;
+      o.castShadow = o !== desk && o !== blob;
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       for (const m of mats) {
         if (fadeMats.includes(m)) continue;
@@ -659,6 +671,23 @@ export function createScene(canvas, options = {}) {
       }
     }
   });
+
+  // ---- void props for the FEATURES beats: coins and a ring for "holds", a lit desk for "sits flat"
+  const brassP = new THREE.MeshStandardMaterial({ color: '#9a8352', roughness: 0.38, metalness: 1, transparent: true, opacity: 0 });
+  const nickel = new THREE.MeshStandardMaterial({ color: '#b9b7b0', roughness: 0.34, metalness: 1, transparent: true, opacity: 0 });
+  const coinGroup = new THREE.Group();
+  const coin = (r, h, m, x, z, rot) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 48), m); c.position.set(x, FLOOR_Y + h / 2, z); c.rotation.y = rot; c.castShadow = true; coinGroup.add(c); return c; };
+  coin(0.117, 0.028, brassP, -0.28, 0.12, 0.3); coin(0.11, 0.026, nickel, 0.08, -0.30, 1.1); coin(0.10, 0.026, brassP, 0.36, 0.24, 2.0);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.014, 16, 48), brassP);
+  ring.rotation.x = Math.PI / 2; ring.position.set(-0.22, FLOOR_Y + 0.014, -0.44); ring.castShadow = true; coinGroup.add(ring);
+  coinGroup.visible = false;
+  scene.add(coinGroup);
+  tray.receiveShadow = true;
+  const groundMat = deskMat.clone(); groundMat.opacity = 0;
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(DESK, DESK), groundMat);
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.034; ground.receiveShadow = true; ground.visible = false;
+  scene.add(ground);
+  let coinT = 0, groundT = 0, ageT = 0;
 
   /* ------------------------------------------------------------ choreography */
 
@@ -683,9 +712,9 @@ export function createScene(canvas, options = {}) {
     under:  { elev: -24,  width: 0.44, nx: 0, ny: 0 },   // the foot ring and chamfer from below
     lip:    { elev: 20,   width: 0.44, nx: 0, ny: 0 },   // low enough to read the pocket depth against the lip
     // FEATURES presets: the tray sits in the right two thirds beside a frosted panel (portrait: upper half, pnx/pny).
-    f1:     { elev: 18,   width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
-    f2:     { elev: -28,  width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
-    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pnx: 0, pny: 0.26 },
+    f1:     { elev: 22,   width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, props: true },   // coins land in the pocket
+    f2:     { elev: 7,    width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, ground: true },  // on a lit desk, shadow tight underneath
+    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, age: true },    // the walnut deepens and recovers on a slow cycle
     // Later beats: the underside flip, a macro across the rim, a small 3/4 between review columns, and 'away'
     // (tray hidden) for sections that paint their own ground or carry the tray as plates.
     flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0 },
@@ -764,8 +793,7 @@ export function createScene(canvas, options = {}) {
     spot.visible = matGroup.visible;
     matGroup.position.y = -0.3 * vd;
     for (const m of fadeMats) m.opacity = m.userData.baseOpacity * op;
-    key.castShadow = matGroup.visible;
-    key.shadow.intensity = op;
+
   }
 
   let raf = 0, running = false, pending = 0, disposed = false;
@@ -799,11 +827,20 @@ export function createScene(canvas, options = {}) {
     applySet(vd);
     const o = override && PRESETS[override];
     trayGroup.visible = !(o && (o.hide || (aspect < 1 && o.phide)));
+    // FEATURES props: ease in and out with the beat.
+    coinT += ((o && o.props ? 1 : 0) - coinT) * a; groundT += ((o && o.ground ? 1 : 0) - groundT) * a;
+    coinGroup.visible = coinT > 0.01; ground.visible = groundT > 0.01;
+    brassP.opacity = nickel.opacity = coinT; groundMat.opacity = groundT;
+    const ageTarget = o && o.age && !reduced ? (1 - Math.cos(elapsed * (Math.PI * 2 / 9))) / 2 : (o && o.age ? 0.5 : 0);
+    ageT += (ageTarget - ageT) * (snap ? 1 : Math.min(1, a * 1.5));
+    wood.color.setRGB(lerp(1, 0.56, ageT), lerp(1, 0.50, ageT), lerp(1, 0.46, ageT));
+    key.castShadow = matGroup.visible || ground.visible || coinGroup.visible;
+    key.shadow.intensity = Math.max(1 - vd, groundT, coinT);
   }
 
   function renderNow() {
     if (disposed) return;
-    const dt = clock.running ? Math.min(clock.getDelta(), 0.1) : 0;
+    const dt = clock.running ? Math.min(clock.getDelta(), 0.25) : 0;   // long frames (software GL, tab switches) still converge quickly
     update(dt);
     renderer.render(scene, camera);
   }
@@ -825,6 +862,7 @@ export function createScene(canvas, options = {}) {
     setProgress(p) { progress = clamp(Number(p) || 0, 0, 1); requestRender(); },
     setPointer(nx, ny) { pointer.x = clamp(Number(nx) || 0, -1, 1); pointer.y = clamp(Number(ny) || 0, -1, 1); requestRender(); },
     setViewOverride(name) { override = (name && PRESETS[name]) ? name : null; requestRender(); },
+    getAge() { return ageT; },
     setSpin(on) { spinning = !!on; if (!spinning && (isStatic || reduced)) spinAngle = 0; requestRender(); },
     resize(width, height, dpr = 1) {
       W = Math.max(1, width | 0); H = Math.max(1, height | 0); aspect = W / H;

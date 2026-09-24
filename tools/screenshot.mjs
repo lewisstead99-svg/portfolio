@@ -61,7 +61,7 @@ try {
     for (const p of at) {
       await page.evaluate(p => window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * p), p);
       await page.waitForTimeout(1400); await frames(6);
-      await page.screenshot({ path: path.join(out, `s${String(p).replace('.', '_')}.png`) });
+      const t0 = Date.now(); await page.screenshot({ path: path.join(out, `s${String(p).replace('.', '_')}.png`), timeout: 180000 }); console.log(`  shot ${p} in ${Date.now() - t0} ms`);
     }
   }
   console.log(`ok: ${at.length} screenshots -> ${out}`);
