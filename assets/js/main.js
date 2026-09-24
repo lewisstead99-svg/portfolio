@@ -268,12 +268,13 @@ spinButton?.addEventListener('click', () => {
 
 // --- Notify form (no backend: this is a concept piece) ----------------------------------------------
 const form = document.getElementById('notify');
+form?.querySelector('input')?.addEventListener('input', () => { form.classList.remove('is-invalid'); form.querySelector('input').removeAttribute('aria-invalid'); });
 form?.addEventListener('submit', e => {
   e.preventDefault();
   const input = form.querySelector('input');
   const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
-  if (!ok) { input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
-  input.removeAttribute('aria-invalid');
+  if (!ok) { input.setAttribute('aria-invalid', 'true'); form.classList.add('is-invalid'); input.focus(); return; }
+  input.removeAttribute('aria-invalid'); form.classList.remove('is-invalid');
   form.classList.add('is-done');
   form.querySelector('.field__done').textContent = 'Noted. Your number is held.';
 });

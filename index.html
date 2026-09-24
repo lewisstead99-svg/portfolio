@@ -84,7 +84,7 @@
       <div class="reveal__grid">
         <div class="reveal__left"><h2 class="heading" data-split>Isn't just a tray.</h2></div>
         <div class="reveal__object" aria-hidden="true"></div>
-        <div class="reveal__right"><p class="body body--sm">Holm isn't just a tray. It's the result of unreasonable attention to detail.*</p></div>
+        <div class="reveal__right"><p class="body">Holm isn't just a tray. It's the result of unreasonable attention to detail.*</p></div>
       </div>
       <p class="footnote">* And a lathe.</p>
     </section>
@@ -279,17 +279,17 @@
     <section class="reviews" id="reviews" data-view="quarter" data-nav="product">
       <div class="reviews__top">
         <h2 class="heading" data-split>People with keys love Holm.</h2>
-        <p class="body body--sm">Do not take our word for it. See what people say after a year of putting things down.</p>
+        <p class="body">Do not take our word for it. See what people say after a year of putting things down.</p>
       </div>
       <div class="reviews__grid">
         <div class="reviews__col">
           <p class="label reviews__head">Rating &amp; reviews</p>
-          <article class="review"><p class="review__stars">★★★★★ <span>5/5</span></p><p class="review__quote">"Finally somewhere for my keys that <em>isn't the fruit bowl</em>. The fruit is thrilled."</p><p class="review__who">Margot R.<br>Architect, Margate</p></article>
-          <article class="review"><p class="review__stars">★★★★★ <span>5/5</span></p><p class="review__quote">"It has <em>outlived two desks</em>. I'm starting to think the desks were the problem."</p><p class="review__who">Tom H.<br>Furniture maker, Bristol</p></article>
+          <article class="review"><p class="review__stars">★ ★ ★ ★ ★ <span>5/5</span></p><p class="review__quote">"Finally somewhere for my keys that <em>isn't the fruit bowl</em>. The fruit is thrilled."</p><p class="review__who">Margot R.<br>Architect, Margate</p></article>
+          <article class="review"><p class="review__stars">★ ★ ★ ★ ★ <span>5/5</span></p><p class="review__quote">"It has <em>outlived two desks</em>. I'm starting to think the desks were the problem."</p><p class="review__who">Tom H.<br>Furniture maker, Bristol</p></article>
         </div>
         <div class="reviews__col reviews__col--mid">
-          <p class="label reviews__head">Customer reviews [ 188 ] ★★★★★ 4.9 / 5</p>
-          <article class="review"><p class="review__stars">★★★★☆ <span>4/5</span></p><p class="review__quote">"Bought one for the hallway. <em>The hallway is now the best room.</em> One star off for making the rest of the house look lazy."</p><p class="review__who">Priya S.<br>Estate agent, Sandbanks</p></article>
+          <p class="label reviews__head">Customer reviews [ 188 ] · 4.9 / 5</p>
+          <article class="review"><p class="review__stars">★ ★ ★ ★ ☆ <span>4/5</span></p><p class="review__quote">"Bought one for the hallway. <em>The hallway is now the best room.</em> One star off for making the rest of the house look lazy."</p><p class="review__who">Priya S.<br>Estate agent, Sandbanks</p></article>
         </div>
         <div class="reviews__col reviews__col--tiles">
           <p class="label reviews__head">Holm in use</p>
@@ -368,14 +368,15 @@
         <div class="reveal__left">
           <p class="label">Contact</p>
           <h2 class="heading" data-split>Be first to a number.</h2>
-          <p class="body body--sm">Holm ships in a single batch of two hundred. Leave an address and we will hold you a number.</p>
+          <p class="body">Holm ships in a single batch of two hundred. Leave an address and we will hold you a number.</p>
           <form class="field" id="notify" novalidate>
             <label class="visually-hidden" for="email">Your email</label>
-            <input class="field__input" id="email" name="email" type="email" placeholder="Your email" autocomplete="email" required>
+            <input class="field__input" id="email" name="email" type="email" placeholder="Your email" autocomplete="email" aria-describedby="emailError" required>
             <button class="field__go" type="submit" aria-label="Hold my number">
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.25"/></svg>
             </button>
             <p class="field__done" role="status" aria-live="polite"></p>
+            <p class="field__error" id="emailError" role="alert">Enter an email address, e.g. name@example.com</p>
           </form>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>

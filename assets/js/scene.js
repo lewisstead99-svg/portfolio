@@ -687,7 +687,7 @@ export function createScene(canvas, options = {}) {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(DESK, DESK), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.034; ground.receiveShadow = true; ground.visible = false;
   scene.add(ground);
-  let coinT = 0, groundT = 0, ageT = 0;
+  let coinT = 0, groundT = 0, ageT = 0, hideT = 0;
 
   /* ------------------------------------------------------------ choreography */
 
@@ -826,7 +826,12 @@ export function createScene(canvas, options = {}) {
     applyCamera(view);
     applySet(vd);
     const o = override && PRESETS[override];
-    trayGroup.visible = !(o && (o.hide || (aspect < 1 && o.phide)));
+    // Sections that paint their own ground ask the tray to leave: it eases down to nothing instead of popping.
+    const wantHide = o && (o.hide || (aspect < 1 && o.phide)) ? 1 : 0;
+    hideT += (wantHide - hideT) * a;
+    const sc = 1 - smooth(hideT);
+    trayGroup.visible = hideT < 0.995;
+    trayGroup.scale.setScalar(Math.max(0.001, sc));
     // FEATURES props: ease in and out with the beat.
     coinT += ((o && o.props ? 1 : 0) - coinT) * a; groundT += ((o && o.ground ? 1 : 0) - groundT) * a;
     coinGroup.visible = coinT > 0.01; ground.visible = groundT > 0.01;
