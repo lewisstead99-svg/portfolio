@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOLM — Made for keys, built for desks</title>
+  <meta name="description" content="HOLM: a hand-turned solid walnut valet tray. A darkroom product editorial — one object floating in warm darkness, rendered live in your browser.">
+  <meta name="theme-color" content="#100904">
+  <meta property="og:title" content="HOLM — Made for keys, built for desks">
+  <meta property="og:description" content="A hand-turned solid walnut valet tray, presented as a museum artifact. Concept product editorial.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="./assets/img/og.jpg">
+  <link rel="icon" href="./assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="./assets/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./assets/css/fonts.css">
+  <link rel="stylesheet" href="./assets/css/styles.css">
+  <script type="importmap">{ "imports": { "three": "./assets/js/vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <a class="skip" href="#intro">Skip to content</a>
+
+  <!-- One WebGL scene renders the tray for the whole page: it starts as a top-down "photograph" and lifts into the void as you scroll. -->
+  <canvas id="scene" class="scene" aria-hidden="true"></canvas>
+
+  <header class="nav" id="nav">
+    <a class="nav__brand" href="#top">HOLM</a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#intro">Intro</a>
+      <a href="#features">Features</a>
+      <a href="#product">Product</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <p class="serial" aria-hidden="true">HOLM 1-MODEL</p>
+
+  <main id="main">
+
+    <!-- HERO — photographic mode: the tray on a cutting mat with the tools of the craft -->
+    <section class="hero" id="top" data-anchor="0" data-scene="hero">
+      <div class="hero__lockup">
+        <p class="hero__tag">Made for keys, built for desks.</p>
+        <h1 class="wordmark">HOLM</h1>
+      </div>
+
+      <div class="card hero__card">
+        <h2 class="card__heading">Designed by Headscratch, a brand studio for premium property and product.</h2>
+        <hr class="rule">
+        <p class="card__body">A concept editorial built as a portfolio piece. One object, warm darkness, cream type. The tray is rendered live in your browser. Scroll, and it lifts off the desk.</p>
+      </div>
+
+      <button class="card thumb" type="button" id="spin" aria-pressed="false" aria-label="Turntable: spin the tray">
+        <span class="thumb__mark">HOLM</span>
+        <svg class="thumb__play" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true" focusable="false">
+          <circle cx="24" cy="24" r="23" fill="none" stroke="currentColor" stroke-width="1"/>
+          <path class="thumb__tri" d="M20 16l13 8-13 8z" fill="currentColor"/>
+          <path class="thumb__stop" d="M18 18h12v12H18z" fill="currentColor"/>
+        </svg>
+        <span class="thumb__label"><span class="thumb__on">Stop</span><span class="thumb__off">Turntable</span></span>
+      </button>
+
+      <p class="hero__scroll" aria-hidden="true">Scroll</p>
+    </section>
+
+    <hr class="divider">
+
+    <!-- INTRO — void mode: object centred, heading left, body right -->
+    <section class="reveal" id="intro" data-anchor="0.40" data-scene="reveal">
+      <div class="reveal__grid">
+        <div class="reveal__left">
+          <p class="label">01 — Intro</p>
+          <h2 class="heading">Isn't just a tray.</h2>
+        </div>
+        <div class="reveal__object" aria-hidden="true"></div>
+        <div class="reveal__right">
+          <p class="body">Turned from a single blank of American black walnut and finished by hand in hardwax oil. Holm gives your keys, your watch and the coins in your pocket one place to land, and makes the simplest moment of the day feel considered.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- FEATURES — void mode: side profile -->
+    <section class="reveal" id="features" data-anchor="0.60" data-scene="profile">
+      <div class="reveal__grid">
+        <div class="reveal__left">
+          <p class="label">02 — Features</p>
+          <h2 class="heading">Made to be forgotten.</h2>
+          <dl class="specs">
+            <div class="specs__row"><dt>Diameter</dt><dd>Ø 200 mm</dd></div>
+            <div class="specs__row"><dt>Height</dt><dd>22 mm</dd></div>
+            <div class="specs__row"><dt>Weight</dt><dd>410 g</dd></div>
+            <div class="specs__row"><dt>Timber</dt><dd>Black walnut</dd></div>
+            <div class="specs__row"><dt>Finish</dt><dd>Hardwax oil</dd></div>
+          </dl>
+        </div>
+        <div class="reveal__object" aria-hidden="true"></div>
+        <div class="reveal__right">
+          <p class="body">No lacquer to chip. No felt to peel. A shallow pocket that stops things rolling and a soft lip that stops them leaving. You will notice Holm for a week. After that it is simply where things go.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- PRODUCT — void mode: detail, with pill view controls -->
+    <section class="reveal" id="product" data-anchor="0.79" data-scene="detail">
+      <div class="reveal__grid">
+        <div class="reveal__left">
+          <p class="label">03 — Product</p>
+          <h2 class="heading">One model. One material.</h2>
+          <div class="views" role="group" aria-label="View">
+            <span class="views__label">View</span>
+            <button class="btn btn--ghost" type="button" data-view="top" aria-pressed="false">Top</button>
+            <button class="btn btn--ghost" type="button" data-view="side" aria-pressed="false">Side</button>
+            <button class="btn btn--ghost" type="button" data-view="detail" aria-pressed="false">Detail</button>
+          </div>
+        </div>
+        <div class="reveal__object" aria-hidden="true"></div>
+        <div class="reveal__right">
+          <p class="body">One size, one timber, one finish. Black walnut, hardwax oil, nothing else. Every tray is numbered on the underside and will darken a shade for each year you own it.</p>
+          <p class="price">£145 · Numbered 1–200 · Made in Dorset</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- CONTACT — void mode: the catalogue plate, credits, the single filled CTA -->
+    <section class="reveal contact" id="contact" data-anchor="1" data-scene="rest">
+      <div class="reveal__grid">
+        <div class="reveal__left">
+          <p class="label">04 — Contact</p>
+          <h2 class="heading">Be first to a number.</h2>
+          <p class="body body--sm">Holm ships in a single batch of two hundred. Leave an address and we will hold you a number.</p>
+          <form class="field" id="notify" novalidate>
+            <label class="visually-hidden" for="email">Your email</label>
+            <input class="field__input" id="email" name="email" type="email" placeholder="Your email" autocomplete="email" required>
+            <button class="field__go" type="submit" aria-label="Hold my number">
+              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.25"/></svg>
+            </button>
+            <p class="field__done" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+        <div class="reveal__object" aria-hidden="true"></div>
+        <div class="reveal__right credits">
+          <p class="credit"><span class="credit__label">Built by</span> <a class="credit__link" href="https://github.com/lewisstead99-svg" rel="author">Headscratch</a></p>
+          <a class="btn btn--filled" href="https://github.com/lewisstead99-svg/portfolio">Visit the studio</a>
+          <p class="colophon">A portfolio piece by Lewis Stead, 2026.<br>A study of the visual system used on oryzo.ai, designed by Lusion, rebuilt around an original product.</p>
+          <p class="legal">* Holm is a fictional product created for portfolio purposes. Type set in Inter in place of Halyard Display. Object rendered with three.js.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

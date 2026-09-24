@@ -1,0 +1,5 @@
+# local scratch for design panels / screenshots — never shipped
+_panel/
+node_modules/
+*.log
+.DS_Store
