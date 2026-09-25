@@ -16,6 +16,7 @@ import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
 const FOV = 30;              // long-ish lens: editorial product photography, little distortion
+const MAX_H = 0.58;          // on landscape screens the tray never spans more than this fraction of the viewport height
 const TRAY_D = 2.0;          // 1 unit = 100 mm → Ø 200 mm
 const VOID = 0x100904;       // page background; fog fades the far rim toward it
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -541,7 +542,7 @@ export function createScene(canvas, options = {}) {
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(VOID, 6, 16);                            // near/far follow the camera distance
-  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60);
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 240);   // small rect-pinned views (the o of longevity on a phone) put the camera a long way back
   const target = new THREE.Vector3(0, 0.10, 0);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -696,9 +697,9 @@ export function createScene(canvas, options = {}) {
   const nickel = new THREE.MeshStandardMaterial({ color: '#b9b7b0', roughness: 0.34, metalness: 1, transparent: true, opacity: 0 });
   const coinGroup = new THREE.Group();
   const coin = (r, h, m, x, z, rot) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 48), m); c.position.set(x, FLOOR_Y + h / 2, z); c.rotation.y = rot; c.castShadow = true; coinGroup.add(c); return c; };
-  coin(0.117, 0.028, brassP, -0.28, 0.12, 0.3); coin(0.11, 0.026, nickel, 0.08, -0.30, 1.1); coin(0.10, 0.026, brassP, 0.36, 0.24, 2.0);
+  coin(0.117, 0.028, brassP, -0.46, -0.30, 0.3); coin(0.10, 0.026, nickel, -0.30, -0.50, 1.1);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.014, 16, 48), brassP);
-  ring.rotation.x = Math.PI / 2; ring.position.set(-0.22, FLOOR_Y + 0.014, -0.44); ring.castShadow = true; coinGroup.add(ring);
+  ring.rotation.x = Math.PI / 2; ring.position.set(0.52, FLOOR_Y + 0.014, 0.30); ring.castShadow = true; coinGroup.add(ring);
   coinGroup.visible = false;
   scene.add(coinGroup);
   tray.receiveShadow = true;
@@ -720,25 +721,28 @@ export function createScene(canvas, options = {}) {
   const leatherP = new THREE.MeshStandardMaterial({ color: '#3a2418', roughness: 0.8, metalness: 0, transparent: true, opacity: 0 });
   function makeKeys() {
     const g = new THREE.Group();
-    const ringM = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.006, 10, 40), nickel); ringM.rotation.x = Math.PI / 2; g.add(ringM);
-    for (const [ang, len] of [[0.35, 0.19], [-0.55, 0.16]]) {
+    const ringM = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.011, 10, 48), nickel); ringM.rotation.x = Math.PI / 2; g.add(ringM);
+    for (const [ang, len, m] of [[0.35, 0.40, brassP], [-0.6, 0.34, nickel]]) {
       const k = new THREE.Group();
-      const bow = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.011, 10, 32), brassP); bow.rotation.x = Math.PI / 2; bow.position.x = 0.05; k.add(bow);
-      const shaft = new THREE.Mesh(new THREE.BoxGeometry(len, 0.009, 0.022), brassP); shaft.position.x = 0.05 + 0.036 + len / 2; k.add(shaft);
-      for (const [dx, h] of [[len * 0.55, 0.018], [len * 0.72, 0.012], [len * 0.88, 0.02]]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.009, h), brassP); t.position.set(0.086 + dx, 0, 0.011 + h / 2); k.add(t); }
+      const bow = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.02, 12, 36), m); bow.rotation.x = Math.PI / 2; bow.position.x = 0.11; k.add(bow);
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(len, 0.018, 0.045), m); shaft.position.x = 0.11 + 0.075 + len / 2; k.add(shaft);
+      for (const [dx, h] of [[len * 0.5, 0.035], [len * 0.66, 0.022], [len * 0.82, 0.04], [len * 0.94, 0.028]]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.018, h), m); t.position.set(0.185 + dx, 0, 0.0225 + h / 2); k.add(t); }
       k.rotation.y = ang; g.add(k);
     }
+    const fob = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.09), leatherP); fob.position.set(-0.19, 0, 0.02); fob.rotation.y = 0.5; g.add(fob);
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     return g;
   }
   function makeWatch() {
     const g = new THREE.Group();
-    const caseM = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.03, 48), nickel); g.add(caseM);
-    const face = new THREE.Mesh(new THREE.CircleGeometry(0.088, 48), darkP); face.rotation.x = -Math.PI / 2; face.position.y = 0.0155; g.add(face);
-    const hand = (len, w, rot) => { const h = new THREE.Mesh(new THREE.BoxGeometry(len, 0.002, w), nickel); h.position.set(Math.cos(rot) * len / 2, 0.017, -Math.sin(rot) * len / 2); h.rotation.y = rot; g.add(h); };
-    hand(0.06, 0.006, 1.2); hand(0.08, 0.004, -0.6);
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.014, 16), nickel); crown.rotation.z = Math.PI / 2; crown.position.set(0.112, 0, 0); g.add(crown);
-    for (const side of [1, -1]) { const strap = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.008, 0.16), leatherP); strap.position.set(0, -0.006, side * 0.18); g.add(strap); }
+    const caseM = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.06, 64), nickel); g.add(caseM);
+    const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.185, 0.014, 12, 64), nickel); bezel.rotation.x = Math.PI / 2; bezel.position.y = 0.03; g.add(bezel);
+    const face = new THREE.Mesh(new THREE.CircleGeometry(0.17, 64), darkP); face.rotation.x = -Math.PI / 2; face.position.y = 0.031; g.add(face);
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const idx = new THREE.Mesh(new THREE.BoxGeometry(i % 3 === 0 ? 0.022 : 0.012, 0.002, 0.006), nickel); idx.position.set(Math.cos(a) * 0.145, 0.033, Math.sin(a) * 0.145); idx.rotation.y = -a; g.add(idx); }
+    const hand = (len, w, rot) => { const h = new THREE.Mesh(new THREE.BoxGeometry(len, 0.003, w), nickel); h.position.set(Math.cos(rot) * len / 2, 0.035, -Math.sin(rot) * len / 2); h.rotation.y = rot; g.add(h); };
+    hand(0.11, 0.012, 1.2); hand(0.15, 0.008, -0.6);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.03, 16), nickel); crown.rotation.z = Math.PI / 2; crown.position.set(0.215, 0, 0); g.add(crown);
+    for (const side of [1, -1]) { const strap = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.016, 0.30), leatherP); strap.position.set(0, -0.012, side * 0.34); strap.rotation.x = side * 0.18; g.add(strap); }
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     return g;
   }
@@ -811,15 +815,15 @@ export function createScene(canvas, options = {}) {
     // The tray is the thread through the whole page, so nothing ever hides it: it perches above the gallery,
     // becomes the O in HOLM (dynamic: the page passes the letter's on-screen rect), floats over the cream
     // ground of the longevity section and sits inside the cream tile of "Always on".
-    light:  { elev: 34,   dynamic: true },   // pinned to a layout slot in the longevity hero so it scrolls with its text
+    light:  { elev: 89.5, dynamic: true },   // the tray is the o of "longevity": pinned to that glyph's box
+    reviewsSlot: { elev: 35, dynamic: true },   // the top row of the reviews, between heading and body
     letterO:{ elev: 89.5, dynamic: true },
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
     // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
     slotQuarter: { elev: 35, dynamic: true },
     slotTop:     { elev: 89.5, dynamic: true },
-    macro:  { elev: 12,   width: 0.88, nx: 0, ny: -0.38, pwidth: 1.3, pnx: 0.05, pny: -0.30, pointerYaw: 22, pointerElev: 5 },   // grain level in the lower third; the pointer sweeps along the rim
-    quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.40, pnx: 0.70, pny: 0.62 },   // portrait: the reviews stack over the centre, so the tray sits top-right
+    macro:  { elev: 12,   width: 0.88, nx: 0, ny: -0.38, pwidth: 1.3, pnx: 0.05, pny: -0.30, pointerYaw: 22, pointerElev: 5, noCap: true },   // grain level in the lower third; the pointer sweeps along the rim
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
   const widthKeys = K.width.map(([p, v]) => [p, v]);                  // hero entries re-capped on resize
@@ -837,6 +841,7 @@ export function createScene(canvas, options = {}) {
   function targetView(p, out) {
     out.elev = track(K.elev, p); out.yaw = track(K.yaw, p); out.width = track(widthKeys, p);
     if (aspect < 1) out.width = Math.min(out.width * 1.75, 0.72);              // portrait: the tray owns the width
+    else out.width = Math.min(out.width, MAX_H / aspect);                        // wide screens: never taller than MAX_H of the viewport
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
     out.still = 0;
     if (blend.a || blend.b) {
@@ -858,7 +863,7 @@ export function createScene(canvas, options = {}) {
     const portrait = aspect < 1;
     if (o.dynamic) { const fo = focus[name] || { nx: 0, ny: 0, width: 0.2 }; dst.width = fo.width; dst.nx = fo.nx; dst.ny = fo.ny; }
     else {
-      dst.width = portrait ? (o.pwidth != null ? o.pwidth : Math.min(o.width * 1.75, 0.72)) : o.width;
+      dst.width = portrait ? (o.pwidth != null ? o.pwidth : Math.min(o.width * 1.75, 0.72)) : (o.noCap ? o.width : Math.min(o.width, MAX_H / aspect));
       dst.nx = portrait && o.pnx != null ? o.pnx : o.nx; dst.ny = portrait && o.pny != null ? o.pny : o.ny;
     }
     return dst;
@@ -984,8 +989,8 @@ export function createScene(canvas, options = {}) {
         }
         const air = clamp((m.position.y - c.rest) / 1.2, 0, 1);
         m.rotation.x = c.tiltX * air; m.rotation.z = c.tiltZ * air; m.rotation.y += c.spin * dt * air;
-        const rr = Math.hypot(m.position.x, m.position.z);           // stay inside the pocket wall
-        if (rr > 0.72) { m.position.x *= 0.72 / rr; m.position.z *= 0.72 / rr; c.vx = -c.vx * 0.4; c.vz = -c.vz * 0.4; }
+        const lim = c.bound || 0.72, rr = Math.hypot(m.position.x, m.position.z);   // stay inside the pocket wall
+        if (rr > lim) { m.position.x *= lim / rr; m.position.z *= lim / rr; c.vx = -c.vx * 0.4; c.vz = -c.vz * 0.4; }
       }
     }
     applyCamera(view);
@@ -1003,8 +1008,8 @@ export function createScene(canvas, options = {}) {
     if (!isStatic) {
       if (coinT > 0.5 && !propsDropped) {
         propsDropped = true;
-        queue.push({ at: elapsed + 0.05, fn: () => dropObject(keysProp, -0.40, 0.40, 0.03, 0.9) });
-        queue.push({ at: elapsed + 0.45, fn: () => dropObject(watchProp, 0.22, -0.06, 0.021, -0.5) });
+        queue.push({ at: elapsed + 0.05, fn: () => dropObject(keysProp, -0.30, 0.34, 0.02, 0.9) });
+        queue.push({ at: elapsed + 0.45, fn: () => dropObject(watchProp, 0.24, -0.16, 0.042, -0.5) });
       }
       if (coinT < 0.05 && propsDropped && !(o && o.props)) { propsDropped = false; keysProp.visible = watchProp.visible = false; }
       for (let i = queue.length - 1; i >= 0; i--) if (elapsed >= queue[i].at) { const q = queue.splice(i, 1)[0]; q.fn(); }
@@ -1049,7 +1054,7 @@ export function createScene(canvas, options = {}) {
   function dropObject(mesh, x, z, restH, rotY) {
     mesh.visible = true;
     mesh.position.set(x, FLOOR_Y + 1.3, z); mesh.rotation.set(0, rotY, 0);
-    dropped.push({ mesh, vy: -0.3, vx: 0, vz: 0, rest: FLOOR_Y + restH, settled: false, bounces: 0, tiltX: (Math.random() - 0.5) * 0.5, tiltZ: (Math.random() - 0.5) * 0.5, spin: (Math.random() - 0.5) * 1.5 });
+    dropped.push({ mesh, vy: -0.3, vx: 0, vz: 0, rest: FLOOR_Y + restH, settled: false, bounces: 0, bound: 0.45, tiltX: (Math.random() - 0.5) * 0.5, tiltZ: (Math.random() - 0.5) * 0.5, spin: (Math.random() - 0.5) * 1.5 });
     requestRender();
   }
 

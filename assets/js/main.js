@@ -290,7 +290,8 @@ const navLinksById = byId;
 const lightEl = document.querySelector('.light');
 const letterO = document.querySelector('.letters__o');
 const liveTile = document.querySelector('.always__tile--live');
-const lightSlot = document.querySelector('.light__slot');
+const lightO = document.querySelector('.light__o');
+const reviewsSlot = document.querySelector('.reviews__slot');
 const slotSections = [...document.querySelectorAll('section[data-view-portrait]')];
 const photoImg = document.querySelector('.plate--photo img[data-tray]');
 const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
@@ -318,8 +319,9 @@ function trackSections() {
     // The tray rides the photograph as the plates slide and holds at the left edge with a sliver still showing, so it
     // never fully leaves the frame and never sits doubled over another plate's printed tray.
     if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.2 * d), r.top + photoFrac[1] * r.height, d); }
-    if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.84); }
-    if (lightSlot) { const r = lightSlot.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.96); }
+    if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
+    if (lightO) { const r = lightO.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.98); }
+    if (reviewsSlot) { const r = reviewsSlot.getBoundingClientRect(); scene.setFocus('reviewsSlot', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width * 0.62, r.height * 0.92)); }
     if (liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus('tile', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
     if (innerWidth < 821) for (const sec of slotSections) { const slot = sec.querySelector('.reveal__object'); if (!slot) continue; const r = slot.getBoundingClientRect(); scene.setFocus(sec.dataset.viewPortrait, r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width * 0.72, r.height * 0.9)); }
     const grounds = [];
@@ -378,7 +380,7 @@ function follow() {
   if (handles) {
     const on = featuresActive && currentStep === '2' && b.visible;
     handles.style.opacity = on ? '1' : '0';
-    if (on) { const size = b.r * 2.3; handles.style.width = handles.style.height = size + 'px'; handles.style.left = (b.x - size / 2) + 'px'; handles.style.top = (b.y - size / 2) + 'px'; busy = true; }
+    if (on) { const size = b.r * 2 * 1.05 / 0.96; handles.style.width = handles.style.height = size + 'px'; handles.style.left = (b.x - size / 2) + 'px'; handles.style.top = (b.y - size / 2) + 'px'; busy = true; }
   }
   if (callouts) {
     const on = sectionEl?.id === 'product' && b.visible && innerWidth > 820;

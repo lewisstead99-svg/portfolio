@@ -21,8 +21,8 @@ The page follows the beat structure of the reference site, section for section, 
 | 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
 | 07 | Macro | The camera drops to grain level across the rim; a friction-coefficient card. |
-| 08 | Longevity | The light interlude: a cream ground the scene paints behind the tray, a giant word, a three-panel strip. |
-| 09 | Reviews | Rating header, three quotes with ember highlights, two plate tiles. |
+| 08 | Longevity | The light interlude: a cream ground the scene paints behind the tray, which becomes the o of "longevity". Below, a three-panel strip: sixty growth rings drawn one per year, the making in order on three orbits, and a number that fills its panel. |
+| 09 | Reviews | Heading and body flank the tray in the top row; three quotes with ember highlights and two plate tiles below. |
 | 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
 | 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
