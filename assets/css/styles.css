@@ -152,6 +152,8 @@ main, .nav, .serial, .progress, .cue { position: relative; z-index: 1; }
 .is-light-mid .serial { color: var(--color-walnut-shadow); }
 .is-light-mid .progress__thumb { background-color: var(--color-walnut-shadow); }
 .cue { position: fixed; left: 50%; bottom: var(--spacing-24); z-index: 10; transform: translateX(-50%); display: flex; align-items: center; gap: var(--spacing-10); font-size: var(--text-2xs); line-height: 1; white-space: nowrap; pointer-events: none; transition: opacity .6s; }
+.cue svg { animation: cue-nudge 2.4s ease-in-out infinite; }
+@keyframes cue-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 .is-end .cue.rise { opacity: 0; }
 .is-light-low .cue { color: var(--color-walnut-shadow); }
 .is-end .cue { opacity: 0; }
@@ -410,6 +412,7 @@ section { position: relative; min-height: var(--vh); }
 .always { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); }
 .always__tile { display: grid; place-items: center; overflow: hidden; min-height: var(--vh); }
 .always__tile img { width: 100%; height: 100%; object-fit: contain; padding: 8%; }
+.always__tile--bark img { transform: scale(1.35); }
 .always__tile--live { background: transparent; }
 .always__tile--bark { background: var(--color-bark-brown); }
 .always__text { display: flex; flex-direction: column; justify-content: center; gap: var(--spacing-24); padding: 120px var(--edge) 160px var(--spacing-41); }
@@ -501,6 +504,7 @@ section { position: relative; min-height: var(--vh); }
 .cta__body { max-width: 46ch; font-size: var(--text-heading-sm); line-height: 1.35; font-weight: var(--weight-regular); text-transform: none; }
 .cta__actions { display: flex; align-items: center; gap: var(--spacing-14); flex-wrap: wrap; margin-top: var(--spacing-10); }
 .btn--lg { padding: var(--spacing-18) var(--spacing-31); font-size: var(--text-sm); border-radius: var(--radius-buttons-pill); }
+.btn__aside { margin-left: var(--spacing-8); color: var(--color-driftwood); }
 .btn__arrow { display: inline-block; margin-left: var(--spacing-12); transition: transform .35s var(--ease-out); }
 .btn:hover .btn__arrow { transform: translateX(4px); }
 .share { display: flex; flex-direction: column; gap: var(--spacing-18); }
@@ -537,8 +541,8 @@ section { position: relative; min-height: var(--vh); }
 /* The edition dot that became yours */
 .edition i.is-yours { background: var(--color-warm-cream); opacity: 1 !important; animation: none; box-shadow: 0 0 0 2px var(--color-walnut-shadow), 0 0 0 3px var(--color-ember-accent); }
 .edition__dot--yours { background: var(--color-warm-cream); box-shadow: 0 0 0 1px var(--color-walnut-shadow), 0 0 0 2px var(--color-ember-accent); margin-left: var(--spacing-10); width: 4px; height: 4px; }
-.edition__dot--yours, .edition__dot--yours + * { display: none; }
-.has-number .edition__dot--yours, .has-number .edition__dot--yours + * { display: inline-block; }
+.edition__dot--yours, .edition__yours { display: none; }
+.has-number .edition__dot--yours, .has-number .edition__yours { display: inline-block; }
 .field__done { flex-wrap: wrap; gap: var(--spacing-10); }
 .field__done .btn { margin-left: auto; }
 
@@ -577,6 +581,13 @@ html.has-cursor .plate img, html.has-cursor .plate video { cursor: none; }
 .flash.is-on { opacity: .96; transition: none; }
 /* Drifting text blocks */
 .reveal__left, .reveal__right, .beat__head, .statement__head, .reviews__heading, .cta__pitch, .always__text { will-change: transform, opacity; }
+
+/* Phones: the offer rides along the bottom once the intro has passed */
+.holdbar { display: none; position: fixed; left: var(--gutter); right: var(--gutter); bottom: calc(var(--spacing-14) + env(safe-area-inset-bottom, 0px)); z-index: 12; align-items: center; gap: var(--spacing-10); padding: var(--spacing-12) var(--spacing-18); border: 1px solid var(--color-cork-border); border-radius: var(--radius-buttons-pill); background: rgba(16, 9, 4, .92); font-size: var(--text-xs); transform: translateY(120%); transition: transform .5s var(--ease-out); }
+.holdbar__dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--color-ember-accent); }
+.holdbar__arrow { margin-left: auto; }
+.holdbar.is-on { transform: none; }
+@media (max-width: 820px) and (pointer: coarse) { .holdbar:not([hidden]) { display: flex; } .holdbar ~ .cue, .is-holdbar .cue { opacity: 0; } }
 
 /* Keys card */
 .keys { position: fixed; left: 50%; top: 50%; z-index: 40; transform: translate(-50%, -50%); width: min(360px, calc(100% - 2 * var(--gutter))); background: rgba(16, 9, 4, .94); }

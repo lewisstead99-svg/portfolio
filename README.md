@@ -59,6 +59,9 @@ The page follows the beat structure of the reference site, section for section, 
   saves the frame at twice the resolution. Drag to compose, Space to expose.
 - **One timber.** The gallery's "does it come in oak?" gets a two-second answer: the same grain, in oak,
   then walnut again.
+- **Small sounds and small moves.** The tray knocks softly when it lands in the O of HOLM and again in the
+  footer's O. Nav links and pills resettle their letters under the pointer. A star falls now and then
+  behind "Always on". On phones a slim bar carries the offer along the bottom once the intro has passed.
 - **It glides.** Mouse-wheel scrolling is eased towards its target (native positions, no transform hijack),
   so the choreography receives a continuous input; trackpads, already smooth, get a shorter glide. Keyboard,
   scrollbar and touch stay native.

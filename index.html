@@ -13,6 +13,12 @@
   <meta property="og:image:alt" content="The HOLM walnut tray on a cutting mat, seen from above, with the HOLM wordmark.">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="./assets/img/favicon.svg" type="image/svg+xml">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[
+    {"@type":"Product","name":"HOLM-1 valet tray","description":"A hand-turned solid black walnut valet tray, Ø 200 mm, numbered 1–200. A fictional product built as a portfolio piece.","brand":{"@type":"Brand","name":"HOLM"},"material":"Black walnut","offers":{"@type":"Offer","price":"145","priceCurrency":"GBP","availability":"https://schema.org/LimitedAvailability"}},
+    {"@type":"Organization","name":"Fabricatr","url":"https://fabricatr.com"}
+  ]}
+  </script>
   <link rel="preload" href="./assets/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./assets/css/fonts.css">
   <link rel="stylesheet" href="./assets/css/styles.css">
@@ -396,11 +402,11 @@
           <div class="stats__cell"><dt>Photographs</dt><dd>0</dd></div>
           <div class="stats__cell"><dt>Triangles</dt><dd data-stat="triangles">—</dd></div>
           <div class="stats__cell"><dt>Textures drawn</dt><dd data-stat="canvases">—</dd></div>
-          <div class="stats__cell"><dt>Lines of code</dt><dd data-stat="loc">2,700</dd></div>
+          <div class="stats__cell"><dt>Lines of code</dt><dd data-stat="loc">3,900</dd></div>
           <div class="stats__cell"><dt>This page</dt><dd>1.4 <span class="u">MB</span></dd></div>
         </dl>
         <div class="pills" role="group" aria-label="The model">
-          <button class="btn btn--ghost" type="button" id="takeFile">Take the file <span class="u">(glb · 3D)</span></button>
+          <button class="btn btn--ghost" type="button" id="takeFile">Take the file<span class="btn__aside u">glb · 3D</span></button>
         </div>
         <p class="legal">* Which is why it looks a little different on your screen than on ours. Wood does that too.</p>
       </div>
@@ -483,7 +489,7 @@
           </form>
           <p class="legal field__hint">One email, when your number is ready. Nothing else, ever.</p>
           <div class="edition" id="edition" role="img" aria-label="Two hundred numbers: 188 taken, 12 still here"></div>
-          <p class="edition__key legal"><span class="edition__dot"></span>Found a desk<span class="edition__dot edition__dot--open"></span>Still here<span class="edition__dot edition__dot--yours"></span>Yours</p>
+          <p class="edition__key legal"><span class="edition__dot"></span><span>Found a desk</span><span class="edition__dot edition__dot--open"></span><span>Still here</span><span class="edition__dot edition__dot--yours"></span><span class="edition__yours">Yours</span></p>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right credits">
@@ -534,6 +540,9 @@
     </section>
 
   </main>
+
+  <!-- Phones: a slim bar at the bottom carries the offer once the intro has passed -->
+  <a class="holdbar" id="holdbar" href="#contact" hidden><span class="holdbar__dot" aria-hidden="true"></span><span id="holdbarText">Twelve left · Hold a number</span><span class="holdbar__arrow" aria-hidden="true">→</span></a>
 
   <!-- Keyboard: a small card listing the keys, toggled with ? -->
   <div class="keys card" id="keys" role="dialog" aria-label="Keyboard" hidden>

@@ -364,7 +364,7 @@ const reviewsSlot = document.querySelector('.reviews__slot');
 const footO = document.querySelector('.foot__o');
 const mainSections = [...document.querySelectorAll('main > section')];
 const chapterEl = document.getElementById('chapter');
-let chapterIdx = -1;
+let chapterIdx = -1, landedIn = null, landTimer = 0;
 const slotSections = [...document.querySelectorAll('section[data-view-portrait]')];
 const photoImg = document.querySelector('.plate--photo img[data-tray]');
 const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
@@ -385,6 +385,7 @@ function trackSections() {
   const section = dom.el.closest('section');
   sectionEl = section;
   html.classList.toggle('is-end', section?.id === 'foot');
+  if (section?.id !== landedIn) { landedIn = section?.id; if (landedIn === 'letters' || landedIn === 'foot') { clearTimeout(landTimer); landTimer = setTimeout(() => { if (sectionEl?.id === landedIn) sound.knock(0.45); }, 700); } }
   if (chapterEl && section) {
     const i = mainSections.indexOf(section);
     if (i >= 0 && i !== chapterIdx) { chapterEl.textContent = `${String(i + 1).padStart(2, '0')} / ${String(mainSections.length).padStart(2, '0')}`; if (chapterIdx >= 0) sound.tick(0.3); chapterIdx = i; }
@@ -528,6 +529,8 @@ addEventListener('scroll', trackCode, { passive: true });
       sky.width = w * d; sky.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0);
       stars = Array.from({ length: Math.round(w * h / 2600) }, () => ({ x: seed() * w, y: seed() * h, r: 0.4 + seed() * 1.1, p: seed() * 6.28, s: 0.4 + seed() * 1.2 }));
     };
+    // Now and then a star falls: a short streak across the upper half, gone in under a second.
+    let streak = null, nextStreak = performance.now() + 4000;
     const draw = now => {
       raf = 0;
       ctx.clearRect(0, 0, w, h);
@@ -536,6 +539,20 @@ addEventListener('scroll', trackCode, { passive: true });
         ctx.globalAlpha = 0.35 + 0.55 * tw;
         ctx.fillStyle = '#ffedd7';
         ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.28); ctx.fill();
+      }
+      if (!reducedMotion) {
+        if (!streak && now > nextStreak) { streak = { x: w * (0.1 + Math.random() * 0.6), y: h * (0.05 + Math.random() * 0.35), a: 0.5 + Math.random() * 0.4, t0: now, len: 90 + Math.random() * 120, dur: 650 + Math.random() * 350 }; nextStreak = now + 7000 + Math.random() * 9000; }
+        if (streak) {
+          const p = (now - streak.t0) / streak.dur;
+          if (p >= 1) streak = null;
+          else {
+            const x = streak.x + Math.cos(streak.a) * streak.len * 2.2 * p, y = streak.y + Math.sin(streak.a) * streak.len * 2.2 * p;
+            const g = ctx.createLinearGradient(x - Math.cos(streak.a) * streak.len, y - Math.sin(streak.a) * streak.len, x, y);
+            g.addColorStop(0, 'rgba(255,237,215,0)'); g.addColorStop(1, `rgba(255,237,215,${0.9 * Math.sin(Math.PI * p)})`);
+            ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.globalAlpha = 1;
+            ctx.beginPath(); ctx.moveTo(x - Math.cos(streak.a) * streak.len, y - Math.sin(streak.a) * streak.len); ctx.lineTo(x, y); ctx.stroke();
+          }
+        }
       }
       ctx.globalAlpha = 1;
       if (on && !reducedMotion) raf = requestAnimationFrame(draw);
@@ -716,6 +733,7 @@ form?.addEventListener('submit', e => {
   if (shareLabel) shareLabel.textContent = 'Tell a friend there are eleven left';
   if (shareNote) shareNote.textContent = `${num} travels with the link: whoever opens it is greeted as your guest.`;
   if (ctaHold) ctaHold.textContent = `${num} is yours`;
+  const hb = document.getElementById('holdbarText'); if (hb) hb.textContent = `${num} is yours · Eleven left`;
   if (scene) {
     const save = document.createElement('button'); save.type = 'button'; save.className = 'btn btn--ghost btn--tiny'; save.textContent = 'Save the card';
     save.addEventListener('click', () => saveCard(n));
@@ -893,6 +911,14 @@ if (scene && !reducedMotion && matchMedia('(pointer: coarse)').matches && 'Devic
   addEventListener('touchend', arm, { once: true, passive: true });
 }
 
+// --- Hover scramble: nav links and pills resettle their letters under the pointer ---------------------------
+if (matchMedia('(pointer: fine)').matches && !reducedMotion) {
+  document.querySelectorAll('.nav__links a, .foot__links a, .views .btn, .pills .btn, [data-dview]').forEach(el => {
+    if (el.children.length) return;                            // only plain text controls
+    el.addEventListener('pointerenter', () => { const t = el.dataset.text || (el.dataset.text = el.textContent.trim()); scrambleTo(el, t, 340); });
+  });
+}
+
 // --- Drift: text blocks lag the page a touch and fade as they leave at the top, so the copy floats over the
 // object instead of scrolling like a document. Rects are read first, styles written after, one layout a frame.
 const driftEls = [...document.querySelectorAll('.reveal__left, .reveal__right, .beat__head, .statement__head, .reviews__heading, .cta__pitch, .always__text')];
@@ -944,6 +970,14 @@ oneTimber?.addEventListener('click', async e => {
   setTimeout(async () => { await scene.setTimber('walnut'); oneTimber.textContent = 'One timber'; oakBusy = false; }, 2200);
 });
 if (scene) setTimeout(() => { const go = () => scene.prepareTimber('oak'); if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 20000 }); else setTimeout(go, 8000); }, 6000);
+
+// --- Phones: the hold bar appears after the intro and steps aside in contact, the foot and photo mode -------
+const holdbar = document.getElementById('holdbar');
+if (holdbar && matchMedia('(max-width: 820px) and (pointer: coarse)').matches) {
+  holdbar.hidden = false;
+  const sync = () => { const on = scrollY > innerHeight * 1.2 && !['contact', 'foot'].includes(sectionEl?.id) && !photoOn && !tourOn; holdbar.classList.toggle('is-on', on); html.classList.toggle('is-holdbar', on); };
+  addEventListener('scroll', sync, { passive: true }); setInterval(sync, 800);
+}
 
 // --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
 const keysCard = document.getElementById('keys');
