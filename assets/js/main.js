@@ -321,7 +321,7 @@ function trackSections() {
     if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.2 * d), r.top + photoFrac[1] * r.height, d); }
     if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
     if (lightO) { const r = lightO.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.98); }
-    if (reviewsSlot) { const r = reviewsSlot.getBoundingClientRect(); scene.setFocus('reviewsSlot', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width * 0.62, r.height * 0.92)); }
+    if (reviewsSlot) { const r = reviewsSlot.getBoundingClientRect(); scene.setFocus('reviewsSlot', r.left + r.width / 2, r.top + r.height * 0.5, Math.min(r.width * 0.72, r.height * 0.9, innerHeight * 0.64)); }
     if (liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus('tile', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
     if (innerWidth < 821) for (const sec of slotSections) { const slot = sec.querySelector('.reveal__object'); if (!slot) continue; const r = slot.getBoundingClientRect(); scene.setFocus(sec.dataset.viewPortrait, r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width * 0.72, r.height * 0.9)); }
     const grounds = [];
