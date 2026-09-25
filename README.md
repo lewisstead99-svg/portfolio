@@ -47,6 +47,18 @@ The page follows the beat structure of the reference site, section for section, 
   highlighted phrases in reviews. Never on a control.
 - **No shadows, no chrome.** Depth comes from the two-step surface stack (`#100904` → `#382416`) and from
   the render itself. Dividers are 1px dashed hairlines.
+- **It opens like a print.** The first frame comes up from black like a photograph in the developer, while
+  the lens settles onto the hero from a touch closer and to one side.
+- **Flights arc.** Between beats the tray does not slide: mid-flight it comes a little toward the lens,
+  lifts, and turns a few degrees, then lands exactly where the next beat wants it. Text blocks lag the
+  page a touch and fade as they leave at the top, so the copy floats over the object. Every jump on the
+  page (nav, anchors, keys, the feature pills, the tour) uses the same eased glide.
+- **Dust in the light.** A few hundred motes drift in the void around the tray, brighter when the lamp is
+  on it.
+- **Photo mode.** "Photograph it" (or C) steps the page back, brings up a viewfinder, and the shutter
+  saves the frame at twice the resolution. Drag to compose, Space to expose.
+- **One timber.** The gallery's "does it come in oak?" gets a two-second answer: the same grain, in oak,
+  then walnut again.
 - **It glides.** Mouse-wheel scrolling is eased towards its target (native positions, no transform hijack),
   so the choreography receives a continuous input; trackpads, already smooth, get a shorter glide. Keyboard,
   scrollbar and touch stay native.

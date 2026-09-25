@@ -182,7 +182,14 @@ if (smoothScroll) {
   cancelWheel = () => { if (animating) { cancelAnimationFrame(sRaf); clearTimeout(sTimer); sRaf = 0; animating = false; } };
   addEventListener('keydown', cancelWheel);
   // Anchor links and hash changes must win over an in-flight wheel easing.
-  document.addEventListener('click', e => { if (e.target.closest?.('a[href^="#"]')) cancelWheel(); }, true);
+  document.addEventListener('click', e => {
+    const a = e.target.closest?.('a[href^="#"]'); if (!a) return;
+    const id = a.getAttribute('href').slice(1), el = id ? document.getElementById(id) : null;
+    cancelWheel();
+    if (!el || reducedMotion) return;
+    e.preventDefault(); glideTo(el.offsetTop, 480); history.replaceState(null, '', '#' + id);   // one motion language for every jump
+  }, true);
+  addEventListener('wheel', e => { if (photoOn) e.preventDefault(); }, { passive: false });
   addEventListener('hashchange', cancelWheel);
   if (new URLSearchParams(location.search).has('debug')) window.__smooth = () => ({ sTarget, sCurrent, animating, sRaf, steps, scrollY, maxY: maxY() });
 }
@@ -210,7 +217,8 @@ const tickPct = () => {
   if (t < 1) requestAnimationFrame(tickPct);
 };
 tickPct();
-const ready = () => { html.classList.add('is-ready'); if (loaderPct) loaderPct.textContent = '100%'; };
+let opened = false;
+const ready = () => { html.classList.add('is-ready'); if (loaderPct) loaderPct.textContent = '100%'; if (!opened) { opened = true; scene?.open(); } };
 if (scene) requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ready, reducedMotion ? 0 : 700)));
 else ready();
 setTimeout(ready, 3500);
@@ -265,6 +273,10 @@ let applyOverride = function (animate = false) {
   else scene?.setViewBlend(blendA, blendB, blendF, animate);
 };
 
+// Every programmatic jump glides with the page's own easing; native smooth scroll is the fallback.
+function glideOrScroll(y, tau = 480) { cancelWheel(); if (glideTo && !reducedMotion) glideTo(y, tau); else window.scrollTo({ top: y, behavior: reducedMotion ? 'instant' : 'smooth' }); }
+const centreOf = (el) => el.getBoundingClientRect().top + scrollY + el.offsetHeight / 2 - innerHeight / 2;
+
 // Pinned features.
 const markers = [...document.querySelectorAll('.pin-marker')];
 const steps = [...document.querySelectorAll('.step')];
@@ -304,8 +316,7 @@ if (markers.length) {
   const prevApply = applyOverride;
   applyOverride = (animate = false) => { prevApply(animate); if (featuresActive && featureView === 'f3' && !ageRaf) ageRaf = requestAnimationFrame(ageTick); };
   gotoButtons.forEach(b => b.addEventListener('click', () => {
-    cancelWheel();
-    markers.find(x => x.dataset.step === b.dataset.goto)?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+    const mk = markers.find(x => x.dataset.step === b.dataset.goto); if (mk) glideOrScroll(centreOf(mk), 520);
   }));
   setStep(1);
 }
@@ -475,6 +486,7 @@ const kickFollow = () => { followWanted = true; if (!scene?.isRunning()) request
 let rpmShown = -1;
 if (scene) scene.afterFrame = () => {
   if (followWanted) follow();
+  drift();
   const tu = scene.getTurn();
   if (tu.active > 0.01 || rpmShown > 0) {
     sound.lathe(tu.active * (tu.eff < 0.995 ? 1 : 0.25), tu.cutting);
@@ -881,28 +893,81 @@ if (scene && !reducedMotion && matchMedia('(pointer: coarse)').matches && 'Devic
   addEventListener('touchend', arm, { once: true, passive: true });
 }
 
+// --- Drift: text blocks lag the page a touch and fade as they leave at the top, so the copy floats over the
+// object instead of scrolling like a document. Rects are read first, styles written after, one layout a frame.
+const driftEls = [...document.querySelectorAll('.reveal__left, .reveal__right, .beat__head, .statement__head, .reviews__heading, .cta__pitch, .always__text')];
+const driftRects = new Array(driftEls.length);
+function drift() {
+  if (reducedMotion) return;
+  const vh = innerHeight;
+  for (let i = 0; i < driftEls.length; i++) driftRects[i] = driftEls[i].getBoundingClientRect();
+  for (let i = 0; i < driftEls.length; i++) {
+    const el = driftEls[i], r = driftRects[i];
+    if (r.bottom < -vh * 0.3 || r.top > vh * 1.3) { if (el.dataset.drifting) { el.style.transform = ''; el.style.opacity = ''; delete el.dataset.drifting; } continue; }
+    const c = (r.top + r.height / 2) / vh;
+    const y = (0.5 - c) * 34, fade = clamp(1 - (0.14 - c) / 0.14, 0.1, 1);
+    el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; el.style.opacity = fade.toFixed(3); el.dataset.drifting = '1';
+  }
+}
+
+// --- Photo mode: the page steps back, a viewfinder comes up, the shutter saves the frame at twice the resolution ---
+const viewfinder = document.getElementById('viewfinder'), flash = document.getElementById('flash'), viewfinderCount = document.getElementById('viewfinderCount');
+let photoOn = false, frames = 0;
+function setPhoto(on) {
+  if (!scene) return;
+  photoOn = on; html.classList.toggle('is-photo', on);
+  if (viewfinder) viewfinder.hidden = !on;
+  if (on) { showKeys(false); closeLightbox(); if (tourOn) setTour(false); sound.tick(0.6); if (viewfinderCount) viewfinderCount.textContent = `Frame ${String(frames + 1).padStart(2, '0')}`; }
+}
+async function expose() {
+  if (!scene || !photoOn) return;
+  flash?.classList.add('is-on'); sound.shutter();
+  await new Promise(r => setTimeout(r, 80));
+  const url = scene.photo(2);
+  flash?.classList.remove('is-on');
+  frames++;
+  const a = document.createElement('a'); a.href = url; a.download = `holm-frame-${String(frames).padStart(2, '0')}.png`; document.body.appendChild(a); a.click(); a.remove();
+  if (viewfinderCount) { viewfinderCount.textContent = `Frame ${String(frames).padStart(2, '0')} · saved`; setTimeout(() => { if (photoOn) viewfinderCount.textContent = `Frame ${String(frames + 1).padStart(2, '0')}`; }, 1800); }
+}
+document.getElementById('photoMode')?.addEventListener('click', () => setPhoto(true));
+document.getElementById('photoDone')?.addEventListener('click', () => setPhoto(false));
+document.getElementById('shutter')?.addEventListener('click', expose);
+
+// --- One timber: the gallery's question gets a two-second answer ---------------------------------------------
+const oneTimber = document.getElementById('oneTimber');
+let oakBusy = false;
+oneTimber?.addEventListener('click', async e => {
+  e.stopPropagation();
+  if (!scene || oakBusy) return;
+  oakBusy = true; oneTimber.textContent = 'Oak…';
+  await scene.setTimber('oak'); oneTimber.textContent = 'See? No.'; sound.tick(0.6);
+  setTimeout(async () => { await scene.setTimber('walnut'); oneTimber.textContent = 'One timber'; oakBusy = false; }, 2200);
+});
+if (scene) setTimeout(() => { const go = () => scene.prepareTimber('oak'); if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 20000 }); else setTimeout(go, 8000); }, 6000);
+
 // --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
 const keysCard = document.getElementById('keys');
 const showKeys = (on) => { if (keysCard) keysCard.hidden = !on; };
 function gotoBeat(dir) {
   const i = Math.max(0, mainSections.indexOf(sectionEl)), next = mainSections[clamp(i + dir, 0, mainSections.length - 1)];
   if (!next) return;
-  cancelWheel();
-  window.scrollTo({ top: next.offsetTop, behavior: reducedMotion ? 'instant' : 'smooth' });
+  glideOrScroll(next.offsetTop, 520);
 }
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   const k = e.key;
   if (k === '?') { showKeys(keysCard?.hidden); sound.tick(0.5); return; }
-  if (k === 'Escape') { showKeys(false); closeLightbox(); if (tourOn) setTour(false); return; }
+  if (k === 'Escape') { showKeys(false); closeLightbox(); if (tourOn) setTour(false); if (photoOn) setPhoto(false); return; }
   if (k === 'p' || k === 'P') { tourOn ? setTour(false) : runTour(); return; }
   if (tourOn) setTour(false);
   if (k === 'ArrowDown' || k === 'j' || k === 'PageDown') { e.preventDefault(); gotoBeat(1); }
   else if (k === 'ArrowUp' || k === 'k' || k === 'PageUp') { e.preventDefault(); gotoBeat(-1); }
-  else if (k === 'd' || k === 'D') { if (featuresActive && currentStep === '1') dropButton?.click(); else { cancelWheel(); markers[0]?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'center' }); } }
-  else if (k === 'f' || k === 'F') { if (sectionEl?.id === 'flip') flipButton?.click(); else { cancelWheel(); document.getElementById('flip')?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' }); } }
+  else if (k === 'd' || k === 'D') { if (featuresActive && currentStep === '1') dropButton?.click(); else if (markers[0]) glideOrScroll(centreOf(markers[0]), 520); }
+  else if (k === 'f' || k === 'F') { if (sectionEl?.id === 'flip') flipButton?.click(); else glideOrScroll(document.getElementById('flip')?.offsetTop || 0, 520); }
+  else if (k === 'c' || k === 'C') { setPhoto(!photoOn); return; }
+  else if ((k === ' ' || k === 'Enter') && photoOn) { e.preventDefault(); expose(); return; }
   else if (k === 's' || k === 'S') soundButton?.click();
-  else if (k === 't' || k === 'T') { if (scrollY > innerHeight * 0.5) { cancelWheel(); window.scrollTo({ top: 0, behavior: reducedMotion ? 'instant' : 'smooth' }); } spinButton?.click(); }
+  else if (k === 't' || k === 'T') { if (scrollY > innerHeight * 0.5) glideOrScroll(0, 600); spinButton?.click(); }
   else return;
   showKeys(false);
 });

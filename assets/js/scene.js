@@ -70,14 +70,16 @@ function tex(canvas, { srgb = true, repeat = null, anisotropy = 1 } = {}) {
 // and a very slow spacing drift so the pattern never reads as a printed stripe.
 // Returns { color, data }: `data` packs bump height (R) and roughness (G) derived from the SAME grain,
 // plus concentric turning marks on the pocket floor (in planar space, so they are exactly concentric).
-function makeWoodCanvases(size, floor) {
+const WALNUT = { base: '#3a2416', glowLight: '92,59,34', glowDark: '36,21,12', late: '36,21,12', lateDark: '20,11,6', early: '92,59,34', poreLight: '110,72,42', poreDark: '28,16,9' };
+const OAK = { base: '#c9a76e', glowLight: '232,205,150', glowDark: '150,112,62', late: '150,110,62', lateDark: '118,84,44', early: '236,212,158', poreLight: '196,160,104', poreDark: '124,90,50' };
+function makeWoodCanvases(size, floor, pal = WALNUT) {
   const [c, ctx] = makeCanvas(size, size, true);
   const R = rng(1917);
-  ctx.fillStyle = '#3a2416';
+  ctx.fillStyle = pal.base;
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < 18; i++) {                      // broad tonal drift
     const g = ctx.createRadialGradient(R() * size, R() * size, 0, R() * size, R() * size, size * (0.25 + R() * 0.35));
-    g.addColorStop(0, R() > 0.5 ? 'rgba(92,59,34,0.22)' : 'rgba(36,21,12,0.28)');
+    g.addColorStop(0, R() > 0.5 ? `rgba(${pal.glowLight},0.22)` : `rgba(${pal.glowDark},0.28)`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -101,9 +103,9 @@ function makeWoodCanvases(size, floor) {
     const drift = 1 + 0.35 * Math.sin(y / (size * 0.31) + ph[3]);      // very-low-frequency spacing modulation
     const sp = (14 + h1 * 44) * drift;                                    // ≈ 2–9 mm between rings
     const strength = 0.3 + 0.7 * h2 * h2;                                // many soft rings, a few strong ones
-    grainPath(y, k); ctx.lineWidth = 1.5 + h3 * 6 * strength; ctx.strokeStyle = `rgba(36,21,12,${0.22 + 0.45 * strength})`; ctx.stroke();
-    if (h1 > 0.45) { grainPath(y + 1.5, k); ctx.lineWidth = 0.8 + R() * 1.2; ctx.strokeStyle = `rgba(20,11,6,${(0.2 + R() * 0.3) * strength})`; ctx.stroke(); }
-    grainPath(y + sp * 0.5, k); ctx.lineWidth = 5 + R() * 12; ctx.strokeStyle = `rgba(92,59,34,${0.08 + R() * 0.18})`; ctx.stroke();
+    grainPath(y, k); ctx.lineWidth = 1.5 + h3 * 6 * strength; ctx.strokeStyle = `rgba(${pal.late},${0.22 + 0.45 * strength})`; ctx.stroke();
+    if (h1 > 0.45) { grainPath(y + 1.5, k); ctx.lineWidth = 0.8 + R() * 1.2; ctx.strokeStyle = `rgba(${pal.lateDark},${(0.2 + R() * 0.3) * strength})`; ctx.stroke(); }
+    grainPath(y + sp * 0.5, k); ctx.lineWidth = 5 + R() * 12; ctx.strokeStyle = `rgba(${pal.early},${0.08 + R() * 0.18})`; ctx.stroke();
     y += sp;
   }
   for (let i = 0; i < 9000; i++) {                     // open pores: short dashes along the grain
@@ -115,7 +117,7 @@ function makeWoodCanvases(size, floor) {
       if (x === x0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
     }
     ctx.lineWidth = 0.6 + R();
-    ctx.strokeStyle = light ? `rgba(110,72,42,${0.15 + R() * 0.25})` : `rgba(28,16,9,${0.18 + R() * 0.3})`;
+    ctx.strokeStyle = light ? `rgba(${pal.poreLight},${0.15 + R() * 0.25})` : `rgba(${pal.poreDark},${0.18 + R() * 0.3})`;
     ctx.stroke();
   }
 
@@ -603,6 +605,7 @@ export function createScene(canvas, options = {}) {
   const woodCanvases = makeWoodCanvases(2048, T.floor);
   const woodMap = tex(woodCanvases.color, { anisotropy: Math.min(8, maxAniso) });
   const woodData = tex(woodCanvases.data, { srgb: false, anisotropy: Math.min(8, maxAniso) });
+  const walnutMaps = { map: woodMap, data: woodData };
   const wood = new THREE.MeshPhysicalMaterial({
     map: woodMap, vertexColors: true,
     roughness: 1.0, roughnessMap: woodData, metalness: 0,          // three reads roughness from .g
@@ -642,6 +645,18 @@ export function createScene(canvas, options = {}) {
   // low in the evening). hourWarm 0..1, hourSwing in degrees of azimuth.
   let hourWarm = 0.4, hourSwing = 0;
   const _fwd = new THREE.Vector3();
+  // Dust in the darkroom: a few hundred motes drifting in a box around the tray, only in the void, brighter
+  // when the lamp is out. Additive, so they read as light, not particles.
+  const MOTES = 240, moteGeo = new THREE.BufferGeometry(), motePos = new Float32Array(MOTES * 3), moteSeed = new Float32Array(MOTES * 2);
+  for (let i = 0; i < MOTES; i++) { motePos[i * 3] = (Math.random() - 0.5) * 3.4; motePos[i * 3 + 1] = -0.3 + Math.random() * 1.8; motePos[i * 3 + 2] = (Math.random() - 0.5) * 3.4; moteSeed[i * 2] = Math.random() * 6.28; moteSeed[i * 2 + 1] = 0.4 + Math.random(); }
+  moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos, 3));
+  const motes = new THREE.Points(moteGeo, new THREE.PointsMaterial({ color: '#ffd9b0', size: 0.014, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  motes.frustumCulled = false; motes.visible = false; scene.add(motes);
+  // The photograph develops: the first frames come up from black like a print in the bath.
+  let devT = reduced ? 1 : 1, developing = false;
+  // Timber: the tray is walnut. Oak exists only as a two-second answer to a question in the gallery.
+  const timber = { walnut: { map: null, data: null }, oak: null }, timberSize = 1024;
+  let timberNow = 'walnut';
 
   // ---- the lathe: the same geometry shown part-way between the blank and the finished tray, a chisel at the cut
   // and shavings flying off it. Everything here lives in a group that turns with the camera yaw, so the tool
@@ -1007,6 +1022,9 @@ export function createScene(canvas, options = {}) {
       out.elev = lerp(_A.elev, _B.elev, f); out.width = lerp(_A.width, _B.width, f);
       out.nx = lerp(_A.nx, _B.nx, f); out.ny = lerp(_A.ny, _B.ny, f); out.vd = lerp(_A.vd, _B.vd, f);
       out.yaw = lerp(_A.yaw, _B.yaw, f); out.still = lerp(_A.still, _B.still, f);
+      // A carried object arcs: mid-flight the tray comes a little toward the lens, lifts, and turns a few degrees,
+      // then lands exactly where the next beat wants it. Nothing at either end, so pinned views stay exact.
+      if (!reduced && f > 0 && f < 1) { const arc = Math.sin(Math.PI * f) * out.vd; out.width *= 1 + 0.09 * arc; out.ny += 0.02 * arc; out.yaw += 12 * arc; }
     }
     return out;
   }
@@ -1190,6 +1208,18 @@ export function createScene(canvas, options = {}) {
       const set = (h, len, rot) => { h.position.set(Math.cos(rot) * len / 2, 0.035, -Math.sin(rot) * len / 2); h.rotation.y = rot; };
       set(hh.h, 0.11, Math.PI / 2 - th); set(hh.m, 0.15, Math.PI / 2 - tm);
     }
+    // Dust: a slow drift, each mote on its own phase; fades with the lift and the lamp.
+    if (!isStatic) {
+      const mo = 0.32 * vd * (1 - sw) * (0.35 + 0.65 * lampOn);
+      motes.material.opacity += (mo - motes.material.opacity) * a;
+      motes.visible = motes.material.opacity > 0.01;
+      if (motes.visible && !reduced) {
+        const arr = moteGeo.attributes.position.array;
+        for (let i = 0; i < MOTES; i++) { const o = i * 3, ph = moteSeed[i * 2], sp = moteSeed[i * 2 + 1]; arr[o] += Math.sin(elapsed * 0.31 * sp + ph) * 0.0012; arr[o + 1] += (0.010 + 0.006 * Math.sin(elapsed * 0.2 + ph)) * dt * sp; arr[o + 2] += Math.cos(elapsed * 0.27 * sp + ph) * 0.0012; if (arr[o + 1] > 1.55) arr[o + 1] = -0.3; }
+        moteGeo.attributes.position.needsUpdate = true;
+      }
+    }
+    if (developing) { devT += (1 - devT) * (snap ? 1 : 1 - Math.exp(-dt * 1.35)); if (devT > 0.999) { devT = 1; developing = false; } }
     applyCamera(view);
     // The lamp sits between the lens and the tray, offset toward the hand, and only lights the void.
     _fwd.setFromMatrixColumn(camera.matrixWorld, 2);
@@ -1225,7 +1255,7 @@ export function createScene(canvas, options = {}) {
     ageT += (ageTarget - ageT) * (snap ? 1 : Math.min(1, a * 1.5));
     wood.color.setRGB(lerp(1, 0.56, ageT), lerp(1, 0.50, ageT), lerp(1, 0.46, ageT));
     // The whole scene grades with the ageing: a touch under-exposed and warmer, like an evening ten years on.
-    renderer.toneMappingExposure = lerp(1.08, 0.86, ageT);
+    renderer.toneMappingExposure = lerp(1.08, 0.86, ageT) * lerp(0.06, 1, smooth(devT));
     const hg = lerp(lerp(0.90, 0.74, hourWarm), 0.843, vd), hb = lerp(lerp(0.80, 0.52, hourWarm), 0.682, vd);   // the hour tints the photograph, not the void
     key.color.setRGB(1.0, lerp(hg, 0.72, ageT), lerp(hb, 0.47, ageT));
     key.castShadow = matGroup.visible || ground.visible || coinGroup.visible;
@@ -1330,6 +1360,38 @@ export function createScene(canvas, options = {}) {
     },
     onLand: null,                                                // (impact 0..1, 'coin' | 'prop') when something meets the pocket
     setTurn(t) { turnT = clamp(Number(t) || 0, 0, 1); requestRender(); },
+    // The opening: the print comes up in the bath and the lens settles onto the photograph from a touch closer and to one side.
+    open() {
+      if (reduced || isStatic) return;
+      devT = 0; developing = true;
+      jump.width -= 0.045; jump.yaw += 9; jump.elev -= 4; jump.yaw = wrap180(jump.yaw);
+      requestRender();
+    },
+    // Oak, prepared quietly in advance so the answer to the question is instant.
+    prepareTimber(name) {
+      if (name !== 'oak' || timber.oak) return Promise.resolve();
+      return new Promise(res => setTimeout(() => {
+        const cv = makeWoodCanvases(timberSize, T.floor, OAK);
+        timber.oak = { map: tex(cv.color, { anisotropy: Math.min(8, maxAniso) }), data: tex(cv.data, { srgb: false, anisotropy: Math.min(8, maxAniso) }) };
+        res();
+      }, 0));
+    },
+    async setTimber(name) {
+      if (name === timberNow) return;
+      if (name === 'oak') await api.prepareTimber('oak');
+      const m = name === 'oak' ? timber.oak : walnutMaps;
+      wood.map = m.map; wood.roughnessMap = wood.bumpMap = m.data; wood.needsUpdate = true;
+      timberNow = name; requestRender();
+    },
+    getTimber() { return timberNow; },
+    // A photograph: the current frame at up to twice the pixel ratio, as a PNG data URL.
+    photo(scale = 2) {
+      const pr = renderer.getPixelRatio();
+      renderer.setPixelRatio(Math.min(3, pr * scale)); renderNow();
+      const url = canvas.toDataURL('image/png');
+      renderer.setPixelRatio(pr); requestRender();
+      return url;
+    },
     burst(n = 60) {
       if (reduced && isStatic) return;
       for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, sp = 1.4 + Math.random() * 1.6; emitChip((Math.random() - 0.5) * 0.6, FLOOR_Y + 0.05, (Math.random() - 0.5) * 0.6, Math.cos(a) * sp * 0.6, 1.8 + Math.random() * 1.6, Math.sin(a) * sp * 0.6); }

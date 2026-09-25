@@ -115,10 +115,21 @@ export function createSound() {
     g.gain.setTargetAtTime(0.016, ctx.currentTime, 1.2);
     room = { src, g };
   }
+  // A shutter: the click of the release, the curtain, and the mirror coming back.
+  function shutter() {
+    if (!enabled || !ensure()) return;
+    tick(1);
+    const t = ctx.currentTime;
+    const src = noise(0.14), bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+    bp.frequency.setValueAtTime(2400, t + 0.02); bp.frequency.exponentialRampToValueAtTime(700, t + 0.12);
+    const g = ctx.createGain(); env(g, t + 0.02, 0.12, 0.004, 0.10);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start(t + 0.02); src.stop(t + 0.16);
+    setTimeout(() => knock(0.35), 110);
+  }
   function setEnabled(on) {
     enabled = !!on;
     if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); startRoom(); tick(0.8); }
     else if (ctx && ctx.state === 'running') ctx.suspend();
   }
-  return { knock, coin, tick, whoosh, lathe: latheSound, setEnabled, get enabled() { return enabled; } };
+  return { knock, coin, tick, whoosh, shutter, lathe: latheSound, setEnabled, get enabled() { return enabled; } };
 }

@@ -125,6 +125,7 @@
           <button class="btn btn--ghost" type="button" data-pill="side" aria-pressed="false">Side</button>
           <button class="btn btn--ghost" type="button" data-pill="under" aria-pressed="false">Under</button>
           <button class="btn btn--ghost" type="button" data-pill="detail" aria-pressed="false">Detail</button>
+          <button class="btn btn--ghost" type="button" id="photoMode">Photograph it</button>
         </div>
       </div>
     </section>
@@ -141,7 +142,7 @@
           <figure class="plate plate--photo"><img src="./assets/img/plates/macro.jpg" alt="The walnut grain across the rim, close up"><figcaption>Nº 052 · Grain</figcaption><span class="plate__dot"></span></figure>
           <figure class="plate plate--void plate--video"><video src="./assets/img/plates/turn.webm" poster="./assets/img/plates/turn.jpg" autoplay muted loop playsinline preload="metadata" aria-label="The tray turning"><source src="./assets/img/plates/turn.mp4" type="video/mp4"></video><figcaption>Nº 121 · In the round</figcaption><span class="plate__dot"></span></figure>
           <figure class="plate plate--olive"><img src="./assets/img/plates/top.png" alt="The tray from above"><figcaption>Nº 088 · Plan</figcaption><span class="plate__dot"></span>
-            <div class="plate__ask"><span>Hey @holm, does it come in oak?</span><span class="btn btn--ghost btn--tiny">One timber</span></div></figure>
+            <div class="plate__ask"><span>Hey @holm, does it come in oak?</span><button class="btn btn--ghost btn--tiny" type="button" id="oneTimber">One timber</button></div></figure>
           <figure class="plate plate--cream plate--poster"><p class="poster__line">Made for keys.<br>Built for desks.</p><p class="poster__foot"><span>HOLM</span><span>Nº 200 · The last one</span></p><span class="plate__dot"></span></figure>
         </div>
       </div>
@@ -544,9 +545,25 @@
       <div><dt><kbd>T</kbd></dt><dd>Turntable</dd></div>
       <div><dt><kbd>S</kbd></dt><dd>Sound</dd></div>
       <div><dt><kbd>P</kbd></dt><dd>Tour: the page plays itself</dd></div>
+      <div><dt><kbd>C</kbd> <kbd>Space</kbd></dt><dd>Photo mode, expose</dd></div>
       <div><dt><kbd>?</kbd> <kbd>Esc</kbd></dt><dd>This card</dd></div>
     </dl>
   </div>
+
+  <!-- Photo mode: the page steps back, a viewfinder comes up, and the shutter saves the frame at twice the resolution -->
+  <div class="viewfinder" id="viewfinder" role="dialog" aria-label="Photo mode" hidden>
+    <div class="viewfinder__grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <span class="viewfinder__corner viewfinder__corner--tl" aria-hidden="true"></span><span class="viewfinder__corner viewfinder__corner--tr" aria-hidden="true"></span>
+    <span class="viewfinder__corner viewfinder__corner--bl" aria-hidden="true"></span><span class="viewfinder__corner viewfinder__corner--br" aria-hidden="true"></span>
+    <p class="viewfinder__read viewfinder__read--tl">HOLM-1 · 50 <span class="u">mm</span> · f/2.8 · 1/125 · ISO 200</p>
+    <p class="viewfinder__read viewfinder__read--tr" id="viewfinderCount">Frame 01</p>
+    <div class="viewfinder__bar">
+      <p class="legal viewfinder__hint">Drag to compose · Space to expose · Esc to leave</p>
+      <button class="btn btn--ghost" type="button" id="shutter"><span class="shutter__dot" aria-hidden="true"></span>Expose</button>
+      <button class="btn btn--ghost btn--tiny" type="button" id="photoDone">Done</button>
+    </div>
+  </div>
+  <div class="flash" id="flash" aria-hidden="true"></div>
 
   <!-- Lightbox: a gallery plate at full size -->
   <div class="lightbox" id="lightbox" role="dialog" aria-label="Plate" hidden>
