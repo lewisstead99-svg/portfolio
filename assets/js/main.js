@@ -102,16 +102,11 @@ function onScroll() {
   }
   layoutGallery();
   trackSections();
-  if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
-}
-function tick(now) {
-  raf = 0;
-  const dt = Math.min(250, now - last); last = now;
-  current = reducedMotion ? target : current + (target - current) * (1 - Math.exp(-dt / (smoothScroll ? 80 : 110)));
-  if (Math.abs(target - current) < 0.0005) current = target;
+  // No second easing stage: the wheel is eased already and touch is smooth by itself, so the camera reads the
+  // scroll position of this very frame and the tray never trails the words around it.
+  current = target;
   scene?.setProgress(current);
   scatter.forEach((l, i) => l.classList.toggle('is-on', !!scene && current > 0.19 + i * 0.03 && current < 0.34));
-  if (current !== target) raf = requestAnimationFrame(tick);
 }
 function onResize() {
   measure();
@@ -126,25 +121,36 @@ function onResize() {
 const smoothScroll = matchMedia('(pointer: fine)').matches && !reducedMotion;
 let cancelWheel = () => {};
 if (smoothScroll) {
-  let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0, sWritten = scrollY;
-  // Frames normally arrive every 16 ms; the timer only steps in if a browser withholds them mid-scroll.
-  const schedule = () => { sRaf = requestAnimationFrame(step); clearTimeout(sTimer); sTimer = setTimeout(() => { if (sRaf) { cancelAnimationFrame(sRaf); step(); } }, 48); };
+  let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0, sWritten = scrollY, tau = 140, lastWheelAt = 0;
   const maxY = () => html.scrollHeight - innerHeight;
+  // The easing runs inside the scene's frame, before the scene updates, and the section tracking is re-read
+  // straight after the scroll write: page and tray then agree within the same frame, instead of the tray
+  // reading last frame's positions and trailing the words by a frame at speed.
+  const ownLoop = !scene;
+  const schedule = () => { if (!ownLoop) return; sRaf = requestAnimationFrame(step); };
   const step = () => {
-    sRaf = 0; clearTimeout(sTimer); steps++;
+    sRaf = 0; steps++;
     const now = performance.now();
     const dt = clamp(now - sLast, 0, 64); sLast = now;          // own clock: rAF timestamps can precede the wheel's
-    sCurrent += (sTarget - sCurrent) * (1 - Math.exp(-dt / 140));
+    sCurrent += (sTarget - sCurrent) * (1 - Math.exp(-dt / tau));
     if (Math.abs(sTarget - sCurrent) < 0.5) { sCurrent = sTarget; animating = false; }
     else schedule();
     sWritten = sCurrent;
     window.scrollTo({ top: sCurrent, behavior: 'instant' });   // bypass CSS scroll-behavior: smooth, which would restart its own animation every frame
+    onScroll();                                              // same frame: the tray reads the new positions before it renders
   };
+  if (scene) scene.onFrame = () => { if (animating) step(); };
+  // A watchdog only for browsers that withhold frames mid-scroll: if no frame has stepped the easing for 90 ms, step it.
+  const watchdog = () => { if (!animating) return; if (performance.now() - sLast > 90) step(); sTimer = setTimeout(watchdog, 100); };
   addEventListener('wheel', e => {
     if (e.ctrlKey || e.metaKey) return;                      // browser zoom
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
-    if (!animating) { sTarget = sCurrent = scrollY; sLast = performance.now(); }
+    const now = performance.now();
+    // Trackpads send many small pixel deltas in quick succession and are already smooth: ease them less so the
+    // page answers the fingers; notched wheels arrive in steps and get the longer glide.
+    tau = e.deltaMode === 0 && Math.abs(e.deltaY) < 40 && now - lastWheelAt < 80 ? 70 : 140; lastWheelAt = now;
+    if (!animating) { sTarget = sCurrent = scrollY; sLast = now; clearTimeout(sTimer); sTimer = setTimeout(watchdog, 100); }
     sTarget = clamp(sTarget + e.deltaY * unit, 0, maxY());
     animating = true;
     if (!sRaf) schedule();
@@ -161,8 +167,7 @@ if (smoothScroll) {
   addEventListener('hashchange', cancelWheel);
   if (new URLSearchParams(location.search).has('debug')) window.__smooth = () => ({ sTarget, sCurrent, animating, sRaf, steps, scrollY, maxY: maxY() });
 }
-if (new URLSearchParams(location.search).has('debug')) { window.__scene = scene; window.__track = () => trackSections();
-}
+if (new URLSearchParams(location.search).has('debug')) { window.__scene = scene; window.__track = () => trackSections(); window.__state = () => ({ featuresActive, currentStep, featureView, followWanted, section: sectionEl?.id, blend: [blendA, blendB, Number(blendF.toFixed(2))] }); }
 
 measure();
 scene?.resize(innerWidth, innerHeight, Math.min(devicePixelRatio || 1, 2));
@@ -268,7 +273,7 @@ if (markers.length) {
   // The ageing gauge follows the scene's darkening cycle while beat 3 is on.
   const marker = document.getElementById('ageMarker');
   let ageRaf = 0;
-  const ageTick = () => { ageRaf = 0; if (!marker || !scene) return; marker.style.top = (scene.getAge?.() ?? 0) * 100 + '%'; if (featuresActive && featureView === 'f3') ageRaf = requestAnimationFrame(ageTick); };
+  const ageTick = () => { ageRaf = 0; if (!marker || !scene) return; marker.style.transform = `translateY(${(scene.getAge?.() ?? 0) * (marker.parentElement?.clientHeight || 0)}px)`; if (featuresActive && featureView === 'f3') ageRaf = requestAnimationFrame(ageTick); };
   const prevApply = applyOverride;
   applyOverride = (animate = false) => { prevApply(animate); if (featuresActive && featureView === 'f3' && !ageRaf) ageRaf = requestAnimationFrame(ageTick); };
   gotoButtons.forEach(b => b.addEventListener('click', () => {
@@ -401,7 +406,7 @@ const done = { drag: false, drop: false, flip: false };
 const heldEl = document.getElementById('heldWeight');
 let heldLast = -1;
 const HINT_TEXT = { drag: 'Try to drag', drop: 'Try to click', flip: 'Try to click' };
-let followRaf = 0;
+let followWanted = false;
 function currentHint() {
   if (!hint || !sectionEl) return null;
   let m = sectionEl.dataset.cursor || null;
@@ -411,19 +416,19 @@ function currentHint() {
   return m;
 }
 function follow() {
-  followRaf = 0;
+  followWanted = false;
   if (!scene) return;
   const b = scene.getBounds();
   let busy = false;
   if (handles) {
     const on = featuresActive && currentStep === '2' && b.visible;
     handles.style.opacity = on ? '1' : '0';
-    if (on) { const size = b.r * 2 * 1.05 / 0.96; handles.style.width = handles.style.height = size + 'px'; handles.style.left = (b.x - size / 2) + 'px'; handles.style.top = (b.y - size / 2) + 'px'; busy = true; }
+    if (on) { const size = b.r * 2 * 1.05 / 0.96; const px = size + 'px'; if (handles.style.width !== px) handles.style.width = handles.style.height = px; handles.style.transform = `translate3d(${b.x - size / 2}px, ${b.y - size / 2}px, 0)`; busy = true; }
   }
   if (callouts) {
     const on = sectionEl?.id === 'product' && b.visible && innerWidth > 820;
     callouts.classList.toggle('is-on', on);
-    if (on) { const size = b.r * 2.4; callouts.style.width = callouts.style.height = size + 'px'; callouts.style.left = (b.x - size / 2) + 'px'; callouts.style.top = (b.y - size / 2) + 'px'; busy = true; }
+    if (on) { const size = b.r * 2.4; const px = size + 'px'; if (callouts.style.width !== px) callouts.style.width = callouts.style.height = px; callouts.style.transform = `translate3d(${b.x - size / 2}px, ${b.y - size / 2}px, 0)`; busy = true; }
   }
   if (heldEl && scene.getHeld) {
     const on = featuresActive && currentStep === '1';
@@ -434,11 +439,13 @@ function follow() {
     const on = !!m && b.visible && b.void > 0.5 && !document.body.classList.contains('is-dragging');
     hint.classList.toggle('is-on', on);
     hint.classList.toggle('hint--tap', m === 'drop' || m === 'flip');
-    if (on) { hint.querySelector('.hint__label').textContent = HINT_TEXT[m]; hint.style.left = b.x + 'px'; hint.style.top = (b.y + b.r + 28) + 'px'; busy = true; }
+    if (on) { const lbl = hint.querySelector('.hint__label'); if (lbl.textContent !== HINT_TEXT[m]) lbl.textContent = HINT_TEXT[m]; hint.style.transform = `translate3d(${b.x}px, ${b.y + b.r + 28}px, 0) translate(-50%, 0)`; busy = true; }
   }
-  if (busy) followRaf = requestAnimationFrame(follow);
+  if (busy) followWanted = true;
 }
-const kickFollow = () => { if (!followRaf) followRaf = requestAnimationFrame(follow); };
+// Followers run after each rendered frame, so they read this frame's bounds, not last frame's.
+const kickFollow = () => { followWanted = true; if (!scene?.isRunning()) requestAnimationFrame(() => { if (followWanted) follow(); }); };
+if (scene) scene.afterFrame = () => { if (followWanted) follow(); };
 addEventListener('scroll', kickFollow, { passive: true });
 addEventListener('pointermove', kickFollow, { passive: true });
 setTimeout(kickFollow, 1200);
@@ -562,7 +569,7 @@ if (scene && finePointer && !reducedMotion) {
   function paint() {
     cursorRaf = 0;
     pos.cx += (pos.x - pos.cx) * 0.35; pos.cy += (pos.y - pos.cy) * 0.35;
-    cursor.style.left = pos.cx + 'px'; cursor.style.top = pos.cy + 'px';
+    cursor.style.transform = `translate3d(${pos.cx}px, ${pos.cy}px, 0) translate(-50%, -50%)`;
     if (Math.abs(pos.x - pos.cx) + Math.abs(pos.y - pos.cy) > 0.3) cursorRaf = requestAnimationFrame(paint);
   }
   addEventListener('pointermove', e => {

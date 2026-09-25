@@ -531,13 +531,14 @@ export function createScene(canvas, options = {}) {
   const isStatic = !!options.static;
   const reduced = !!options.reducedMotion || isStatic;
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+  // MSAA only on low-density screens: at 1.5x and above the pixel density hides the edges and MSAA would just be fill cost.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.5, alpha: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;                    // soft enough at 2048 with a radius; PCFSoft costs several times more per pixel
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
   const scene = new THREE.Scene();
@@ -565,7 +566,7 @@ export function createScene(canvas, options = {}) {
   key.shadow.mapSize.set(2048, 2048);
   key.shadow.camera.near = 1; key.shadow.camera.far = 14;
   key.shadow.camera.left = -3.6; key.shadow.camera.right = 3.6; key.shadow.camera.top = 3.6; key.shadow.camera.bottom = -3.6;
-  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015;
+  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015; key.shadow.radius = 3;
   scene.add(key, key.target);
   const spot = new THREE.SpotLight('#ffdcb8', 0, 0, 22 * DEG, 0.85, 2); // hero pool of light on the mat
   spot.target = key.target;
@@ -1034,18 +1035,36 @@ export function createScene(canvas, options = {}) {
   }
 
   function renderNow() {
-    if (disposed) return;
+    if (disposed) return 0;
     const dt = clock.running ? Math.min(clock.getDelta(), 0.25) : 0;   // long frames (software GL, tab switches) still converge quickly
     update(dt);
     renderer.render(scene, camera);
+    return dt;
+  }
+  // Adaptive resolution: the scene is fill-bound, so when frames run long the pixel ratio steps down a quarter at a
+  // time (never below 1), and steps back up once frames have been comfortably short for a while.
+  let baseDpr = 1, quality = 1, ftAcc = 0, ftN = 0, calm = 0;
+  function applyPixelRatio() { renderer.setPixelRatio(Math.max(1, baseDpr * quality)); }
+  function adapt(dt) {
+    if (dt <= 0 || dt > 0.2 || clock.elapsedTime < 2.5) return;      // ignore the first frames and tab switches
+    ftAcc += dt; ftN++;
+    if (ftN < 30) return;
+    const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
+    if (avg > 1 / 45 && quality > 0.5) { quality = Math.max(0.5, quality - 0.25); calm = 0; applyPixelRatio(); }
+    else if (avg < 1 / 58 && quality < 1 && ++calm >= 4) { quality = Math.min(1, quality + 0.25); calm = 0; applyPixelRatio(); }
   }
   function requestRender() {
     if (disposed || running || pending) return;
     pending = requestAnimationFrame(() => { pending = 0; renderNow(); });
   }
+  // One frame, in order: the page's frame work (eased scroll, section tracking) → scene update → render → the
+  // followers that read the tray's screen bounds. Everything the visitor sees in a frame agrees with itself.
   function loop() {
     if (!running) return;
-    renderNow();
+    if (api.onFrame) { try { api.onFrame(); } catch (e) { console.warn(e); } }
+    const dt = renderNow();
+    adapt(dt);
+    if (api.afterFrame) { try { api.afterFrame(); } catch (e) { console.warn(e); } }
     raf = requestAnimationFrame(loop);
   }
   const onContextLost = (e) => { e.preventDefault(); };
@@ -1112,6 +1131,10 @@ export function createScene(canvas, options = {}) {
       return { triangles: Math.round(tris), wireSegments: wire.geometry.getAttribute('position').count / 2, canvases, drawCalls: renderer.info.render.calls, lights: [key, spot, rim, front, bounce, hemi].length };
     },
     onLand: null,                                                // (impact 0..1, 'coin' | 'prop') when something meets the pocket
+    onFrame: null,                                               // called at the top of every rendered frame
+    afterFrame: null,                                            // called after every rendered frame, bounds fresh
+    isRunning() { return running; },
+    getQuality() { return { quality, pixelRatio: renderer.getPixelRatio(), antialias: renderer.getContextAttributes().antialias }; },
     getHeld() {
       let grams = 0, settling = false;
       for (const c of dropped) { if (!c.mesh.visible) continue; if (c.bounces > 0) grams += c.mass || 0; if (!c.settled) settling = true; }
@@ -1137,7 +1160,8 @@ export function createScene(canvas, options = {}) {
       const heroCap = Math.min(0.38, 0.6 / aspect);           // hero: never taller than 60% of the viewport
       widthKeys[0][1] = widthKeys[1][1] = heroCap;
       layoutProps(aspect < 1);
-      renderer.setPixelRatio(Math.min(dpr || 1, 2));
+      baseDpr = Math.min(dpr || 1, W >= 1400 ? 1.5 : 2);            // a 1.5x tray is indistinguishable from 2x on a wide screen and 44% cheaper
+      applyPixelRatio();
       renderer.setSize(W, H, false);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();

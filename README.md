@@ -47,7 +47,14 @@ The page follows the beat structure of the reference site, section for section, 
 - **No shadows, no chrome.** Depth comes from the two-step surface stack (`#100904` → `#382416`) and from
   the render itself. Dividers are 1px dashed hairlines.
 - **It glides.** Mouse-wheel scrolling is eased towards its target (native positions, no transform hijack),
-  so the choreography receives a continuous input. Keyboard, scrollbar and touch stay native.
+  so the choreography receives a continuous input; trackpads, already smooth, get a shorter glide. Keyboard,
+  scrollbar and touch stay native.
+- **One frame, one truth.** The eased scroll, the section tracking, the scene update, the render and the
+  DOM followers (handles, callouts, hint, cursor) run in a fixed order inside a single animation frame, so
+  the tray and the words around it always agree within the frame. Followers move by transform, never by
+  layout. The renderer is fill-bound, so it caps at 1.5x on wide screens, drops multisampling where the
+  pixel density already hides edges, uses plain PCF shadows, and steps its pixel ratio down a quarter at a
+  time when frames run long, back up when they settle.
 - **It tells you what to try.** A hand icon and a word appear under the tray the first time each interaction is
   available ("Try to drag", "Try to click"), and stop once you have.
 - **It answers the hand.** A cream ring cursor names what the tray will do (Drag, Drop, Flip). Drag the tray

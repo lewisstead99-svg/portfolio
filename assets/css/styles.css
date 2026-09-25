@@ -205,7 +205,7 @@ section { position: relative; min-height: var(--vh); }
 .statement__copy { display: flex; flex-direction: column; gap: var(--spacing-18); }
 .statement .body { max-width: 40ch; }
 /* The callouts ride the tray: the wrapper is sized and placed from the scene's bounds every frame. */
-.callouts { position: fixed; left: 0; top: 0; width: 100px; height: 100px; pointer-events: none; z-index: 2; opacity: 0; transition: opacity .5s var(--ease-out); }
+.callouts { position: fixed; left: 0; top: 0; width: 100px; height: 100px; pointer-events: none; z-index: 2; opacity: 0; transition: opacity .5s var(--ease-out); will-change: transform; }
 .callouts.is-on { opacity: 1; }
 .leaders { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .leaders path { fill: none; stroke: var(--color-driftwood); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
@@ -248,7 +248,7 @@ section { position: relative; min-height: var(--vh); }
 .pin-section { height: 300vh; }
 .pin { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .pin-track { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-rows: repeat(3, 1fr); }
-.panel { position: absolute; left: 0; top: 0; bottom: 0; width: 30vw; min-width: 300px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-24); padding: 96px var(--spacing-24) var(--spacing-24); background: rgba(56, 36, 22, 0.30); -webkit-backdrop-filter: blur(28px) saturate(1.05); backdrop-filter: blur(28px) saturate(1.05); border-right: 1px dashed var(--color-cork-border); }
+.panel { position: absolute; left: 0; top: 0; bottom: 0; width: 30vw; min-width: 300px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-24); padding: 96px var(--spacing-24) var(--spacing-24); background: rgba(56, 36, 22, 0.34); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-right: 1px dashed var(--color-cork-border); }   /* the blur is re-rendered every frame over a live canvas: 16px reads the same as 28 at a fraction of the cost */
 .panel__top, .panel__bottom { display: flex; flex-direction: column; gap: var(--spacing-18); }
 .panel__body { font-size: var(--text-sm); line-height: 1.4; font-weight: var(--weight-regular); text-transform: none; max-width: 30ch; }
 .panel__note { font-family: var(--font-legal); font-size: var(--text-legal); line-height: var(--leading-legal); text-transform: uppercase; }
@@ -273,8 +273,8 @@ section { position: relative; min-height: var(--vh); }
 .panel__ticker { display: flex; gap: var(--spacing-10); font-size: var(--text-2xs); line-height: 1.2; }
 .ticker__val { color: var(--color-ember-accent); font-variant-numeric: tabular-nums; text-transform: none; }
 .stage { position: absolute; left: 30vw; right: 0; top: 0; bottom: 0; }
-.handles { position: fixed; left: 0; top: 0; width: 100px; height: 100px; overflow: visible; pointer-events: none; z-index: 2; opacity: 0; transition: opacity .5s var(--ease-out); }
-.stage .handles.step { position: fixed; transform: none; }
+.handles { position: fixed; left: 0; top: 0; width: 100px; height: 100px; overflow: visible; pointer-events: none; z-index: 2; opacity: 0; transition: opacity .5s var(--ease-out); will-change: transform; }
+.stage .handles.step { position: fixed; left: 0; top: 0; transform: none; }   /* placed by transform from the viewport origin, not from the stage's static position */
 .handles__circle { fill: none; stroke: var(--color-warm-cream); stroke-width: .8; stroke-dasharray: 1.2 1.6; vector-effect: non-scaling-stroke; }
 .handles__circle--inner { stroke-opacity: .5; }
 .handles__box { fill: none; stroke: var(--color-ember-accent); stroke-width: .5; stroke-dasharray: .8 1.6; stroke-opacity: .8; vector-effect: non-scaling-stroke; }
@@ -497,7 +497,7 @@ section { position: relative; min-height: var(--vh); }
    -------------------------------------------------------------------------- */
 html.has-cursor, html.has-cursor * { cursor: none !important; }
 html.has-cursor input, html.has-cursor textarea { cursor: text !important; }
-.cursor { position: fixed; left: 0; top: 0; z-index: 60; width: 10px; height: 10px; border: 1px solid var(--color-warm-cream); border-radius: var(--radius-full); transform: translate(-50%, -50%); pointer-events: none; mix-blend-mode: difference; display: grid; place-items: center; transition: width .28s var(--ease-out), height .28s var(--ease-out), border-style .28s, opacity .3s; will-change: left, top; }
+.cursor { position: fixed; left: 0; top: 0; z-index: 60; width: 10px; height: 10px; border: 1px solid var(--color-warm-cream); border-radius: var(--radius-full); transform: translate(-50%, -50%); pointer-events: none; mix-blend-mode: difference; display: grid; place-items: center; transition: width .28s var(--ease-out), height .28s var(--ease-out), border-style .28s, opacity .3s; will-change: transform; }
 .cursor__label { position: absolute; font-size: var(--text-2xs); line-height: 1; white-space: nowrap; opacity: 0; transition: opacity .2s; color: var(--color-warm-cream); }
 .cursor.is-link { width: 36px; height: 36px; }
 .cursor.is-tray { width: 72px; height: 72px; border-style: dashed; }
