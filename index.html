@@ -470,13 +470,13 @@
             <p class="field__done" role="status" aria-live="polite"></p>
             <p class="field__error" id="emailError" role="alert">Enter an email address, e.g. name@example.com</p>
           </form>
+          <p class="legal field__hint">One email, when your number is ready. Nothing else, ever.</p>
           <div class="edition" id="edition" role="img" aria-label="Two hundred numbers: 188 taken, 12 still here"></div>
           <p class="edition__key legal"><span class="edition__dot"></span>Found a desk<span class="edition__dot edition__dot--open"></span>Still here<span class="edition__dot edition__dot--yours"></span>Yours</p>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right credits">
           <p class="credit"><span class="credit__label">Built by</span> <a class="credit__link" href="https://fabricatr.com" rel="author">Fabricatr</a></p>
-          <a class="btn btn--filled" href="https://fabricatr.com">Visit Fabricatr</a>
           <p class="colophon">A Fabricatr portfolio piece, 2026.<br>A study of the visual system used on oryzo.ai, designed by Lusion, rebuilt around an original product.</p>
           <p class="legal legal--lg">* Holm is a fictional product created for portfolio purposes. Type set in Inter in place of Halyard Display. Object rendered live with three.js.</p>
         </div>
@@ -485,6 +485,32 @@
 
     <!-- 15 FOOT — the wordmark once more, the tray back in its O -->
     <section class="foot" id="foot" data-view="footO" data-nav="contact" data-cursor="drag" aria-label="Footer">
+      <div class="cta">
+        <div class="cta__pitch">
+          <p class="label cta__label">Built by Fabricatr</p>
+          <h2 class="heading cta__heading" data-split>Want one of these for your product?</h2>
+          <p class="cta__body">Fabricatr designs and builds product sites people send to each other. One object, one story, nothing off the shelf. Holm is a study; yours would be real.</p>
+          <div class="cta__actions">
+            <a class="btn btn--filled btn--lg" href="https://fabricatr.com">Start a project<span class="btn__arrow" aria-hidden="true">→</span></a>
+            <a class="btn btn--ghost btn--lg" href="#contact" id="ctaHold">Hold a number</a>
+          </div>
+        </div>
+        <div class="share card" id="share">
+          <p class="label share__label" id="shareLabel">Share it with a friend</p>
+          <div class="share__url">
+            <input class="share__field" id="shareUrl" type="text" readonly aria-label="Link to this page" value="">
+            <button class="btn btn--ghost" type="button" id="copyLink">Copy link</button>
+          </div>
+          <div class="share__row">
+            <a class="btn btn--ghost btn--tiny" id="shareWa" href="https://wa.me/" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="btn btn--ghost btn--tiny" id="shareX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">X</a>
+            <a class="btn btn--ghost btn--tiny" id="shareLi" href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+            <a class="btn btn--ghost btn--tiny" id="shareMail" href="mailto:">Email</a>
+            <button class="btn btn--ghost btn--tiny" type="button" id="shareNative" hidden>Share…</button>
+          </div>
+          <p class="legal share__note" id="shareNote">The link opens on the photograph. Hold a number and it travels with the link.</p>
+        </div>
+      </div>
       <div class="foot__row">
         <nav class="foot__links" aria-label="Footer">
           <a href="https://fabricatr.com" rel="author">Fabricatr.com</a>

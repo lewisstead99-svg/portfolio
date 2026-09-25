@@ -27,8 +27,8 @@ The page follows the beat structure of the reference site, section for section, 
 | 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
 | 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
-| 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, the single filled pill, colophon. Leave an address and one of the twelve becomes yours: the number is stamped onto the tray that second, the tray turns over to show it, the count drops to eleven, your dot is ringed, and a card with the frame can be saved. |
-| 13 | Foot | A link row over the wordmark at full width, and the tray flies back into its O to close the loop. |
+| 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, colophon. Leave an address and one of the twelve becomes yours: the number is stamped onto the tray that second, the tray turns over to show it, the count drops to eleven, your dot is ringed, and a card with the frame can be saved. |
+| 13 | Foot | The close: a Fabricatr pitch with the page's one filled pill ("Start a project"), a share card whose link carries your number to the friend (copy, WhatsApp, X, LinkedIn, email, native share), the link row, and the wordmark at full width with the tray back in its O. A friend arriving through the link is greeted by name of number in the hero. |
 
 - **Scroll-linked flights.** Every hand-over between beats is a blend driven by scroll position, not a
   threshold: as the next section's top edge crosses its line the camera travels from the previous view to

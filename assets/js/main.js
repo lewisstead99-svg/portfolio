@@ -698,6 +698,11 @@ form?.addEventListener('submit', e => {
   const dot = edition?.children[n - 1]; if (dot) { dot.classList.remove('is-open'); dot.classList.add('is-yours'); dot.title = `${num} · yours`; }
   contact.dataset.view = 'flip'; contact.dataset.viewPortrait = 'flip'; animateNext = true; trackSections();
   doneEl.textContent = `${num} is yours.`;
+  heldNumber = n; refreshShare();
+  const shareLabel = document.getElementById('shareLabel'), shareNote = document.getElementById('shareNote'), ctaHold = document.getElementById('ctaHold');
+  if (shareLabel) shareLabel.textContent = 'Tell a friend there are eleven left';
+  if (shareNote) shareNote.textContent = `${num} travels with the link: whoever opens it is greeted as your guest.`;
+  if (ctaHold) ctaHold.textContent = `${num} is yours`;
   if (scene) {
     const save = document.createElement('button'); save.type = 'button'; save.className = 'btn btn--ghost btn--tiny'; save.textContent = 'Save the card';
     save.addEventListener('click', () => saveCard(n));
@@ -736,6 +741,43 @@ function saveCard(n) {
     sound.tick(0.6);
   };
   img.src = snap.url;
+}
+
+// --- Share: the link to this page; if you hold a number it rides along and greets the friend --------------
+const shareUrlEl = document.getElementById('shareUrl');
+let heldNumber = 0;
+function pageUrl() {
+  const u = new URL(location.href); u.hash = ''; u.search = '';
+  if (u.pathname.endsWith('/index.html')) u.pathname = u.pathname.slice(0, -'index.html'.length);
+  if (heldNumber) u.searchParams.set('n', String(heldNumber));
+  return u.toString();
+}
+const shareText = () => heldNumber
+  ? `I hold Nº ${String(heldNumber).padStart(3, '0')} of the two hundred Holm trays. Eleven left. Have a look:`
+  : 'A valet tray you can turn, flip, fill with coins and watch being made. Have a look:';
+function refreshShare() {
+  if (!shareUrlEl) return;
+  const url = pageUrl(), text = shareText(), enc = encodeURIComponent;
+  shareUrlEl.value = url;
+  const set = (id, href) => { const a = document.getElementById(id); if (a) a.href = href; };
+  set('shareWa', `https://wa.me/?text=${enc(text + ' ' + url)}`);
+  set('shareX', `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`);
+  set('shareLi', `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`);
+  set('shareMail', `mailto:?subject=${enc('Have a look at Holm')}&body=${enc(text + '\n\n' + url)}`);
+}
+refreshShare();
+shareUrlEl?.addEventListener('focus', () => shareUrlEl.select());
+document.getElementById('copyLink')?.addEventListener('click', async e => {
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText(shareUrlEl.value); } catch { shareUrlEl.select(); try { document.execCommand('copy'); } catch {} }
+  b.textContent = 'Copied'; b.classList.add('is-done'); sound.tick(0.7);
+  setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('is-done'); }, 1600);
+});
+const nativeShare = document.getElementById('shareNative');
+if (nativeShare && navigator.share) { nativeShare.hidden = false; nativeShare.addEventListener('click', () => navigator.share({ title: 'HOLM', text: shareText(), url: pageUrl() }).catch(() => {})); }
+{ // arriving through a friend's link: the hero tag says who sent you
+  const from = Number(new URLSearchParams(location.search).get('n')), tag = document.querySelector('.hero__tag');
+  if (tag && from >= 1 && from <= 200) tag.textContent = `Sent by the keeper of Nº ${String(from).padStart(3, '0')}.`;
 }
 
 // --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
