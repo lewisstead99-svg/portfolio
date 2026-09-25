@@ -101,9 +101,23 @@ export function createSound() {
     lathe.gc.gain.setTargetAtTime(0.11 * cv, t, 0.06);
     lathe.bp.frequency.setTargetAtTime(900 + 900 * cv, t, 0.08);
   }
+  // Room tone: a whisper of low noise with a slow swell, so silence has a floor.
+  let room = null;
+  function startRoom() {
+    if (room || !ctx) return;
+    const n = Math.floor(ctx.sampleRate * 3), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+    let last = 0; for (let i = 0; i < n; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    const src = ctx.createBufferSource(); src.buffer = b; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
+    const g = ctx.createGain(); g.gain.value = 0.0001;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 0.006; lfo.connect(lg); lg.connect(g.gain);
+    src.connect(lp); lp.connect(g); g.connect(master); src.start(); lfo.start();
+    g.gain.setTargetAtTime(0.016, ctx.currentTime, 1.2);
+    room = { src, g };
+  }
   function setEnabled(on) {
     enabled = !!on;
-    if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); tick(0.8); }
+    if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); startRoom(); tick(0.8); }
     else if (ctx && ctx.state === 'running') ctx.suspend();
   }
   return { knock, coin, tick, whoosh, lathe: latheSound, setEnabled, get enabled() { return enabled; } };

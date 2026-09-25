@@ -48,6 +48,7 @@
       <a href="#features">Features</a>
       <a href="#product">Product</a>
       <a href="#contact">Contact</a>
+      <button class="nav__sound nav__tour" type="button" id="tour" aria-pressed="false" aria-label="Tour: let the page play itself"><svg class="nav__tour-mark" viewBox="0 0 10 10" width="8" height="8" aria-hidden="true" focusable="false"><path class="nav__tour-play" d="M1 0.5 L9.5 5 L1 9.5z" fill="currentColor"/><path class="nav__tour-stop" d="M1 1h8v8H1z" fill="currentColor"/></svg><span class="nav__sound-text"><span class="nav__tour-off">Tour</span><span class="nav__tour-on">Stop</span></span></button>
       <button class="nav__sound" type="button" id="sound" aria-pressed="false" aria-label="Sound off"><span class="nav__sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="nav__sound-text">Sound <span class="nav__sound-state">off</span></span></button>
     </nav>
   </header>
@@ -397,6 +398,9 @@
           <div class="stats__cell"><dt>Lines of code</dt><dd data-stat="loc">2,700</dd></div>
           <div class="stats__cell"><dt>This page</dt><dd>1.4 <span class="u">MB</span></dd></div>
         </dl>
+        <div class="pills" role="group" aria-label="The model">
+          <button class="btn btn--ghost" type="button" id="takeFile">Take the file <span class="u">(glb · 3D)</span></button>
+        </div>
         <p class="legal">* Which is why it looks a little different on your screen than on ours. Wood does that too.</p>
       </div>
     </section>
@@ -415,6 +419,12 @@
             <div class="specs__row"><dt>Timber</dt><dd>Black walnut</dd></div>
             <div class="specs__row"><dt>Finish</dt><dd>Hardwax oil</dd></div>
           </dl>
+          <div class="pills pills--drawing" role="group" aria-label="Drawing view">
+            <button class="btn btn--ghost" type="button" data-dview="plan" aria-pressed="true">Plan</button>
+            <button class="btn btn--ghost" type="button" data-dview="section" aria-pressed="false">Section A–A</button>
+            <button class="btn btn--ghost" type="button" data-dview="scale" aria-pressed="false">For scale</button>
+          </div>
+          <p class="legal drawing__note" id="drawingNote">The drawing on the right, live: cut it through, or set it beside things you know the size of.</p>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right">
@@ -533,8 +543,16 @@
       <div><dt><kbd>F</kbd></dt><dd>Flip it over</dd></div>
       <div><dt><kbd>T</kbd></dt><dd>Turntable</dd></div>
       <div><dt><kbd>S</kbd></dt><dd>Sound</dd></div>
+      <div><dt><kbd>P</kbd></dt><dd>Tour: the page plays itself</dd></div>
       <div><dt><kbd>?</kbd> <kbd>Esc</kbd></dt><dd>This card</dd></div>
     </dl>
+  </div>
+
+  <!-- Lightbox: a gallery plate at full size -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-label="Plate" hidden>
+    <button class="btn btn--ghost btn--tiny lightbox__close" type="button" id="lightboxClose">Close</button>
+    <div class="lightbox__media" id="lightboxMedia"></div>
+    <p class="legal lightbox__cap" id="lightboxCap"></p>
   </div>
 
   <script type="module" src="./assets/js/main.js"></script>

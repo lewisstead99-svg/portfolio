@@ -137,7 +137,7 @@ function onResize() {
 // input. Native positions are kept (no transform hijack), so sticky sections, anchors and observers all still
 // work. Keyboard, scrollbar and touch scrolling stay native and simply resync the target.
 const smoothScroll = matchMedia('(pointer: fine)').matches && !reducedMotion;
-let cancelWheel = () => {};
+let cancelWheel = () => {}, glideTo = null;
 if (smoothScroll) {
   let sTarget = scrollY, sCurrent = scrollY, sRaf = 0, sTimer = 0, sLast = 0, animating = false, steps = 0, sWritten = scrollY, tau = 140, lastWheelAt = 0;
   const maxY = () => html.scrollHeight - innerHeight;
@@ -158,6 +158,7 @@ if (smoothScroll) {
     onScroll();                                              // same frame: the tray reads the new positions before it renders
   };
   if (scene) scene.onFrame = () => { if (animating) step(); };
+  glideTo = (y, t = 140) => { tau = t; if (!animating) { sTarget = sCurrent = scrollY; sLast = performance.now(); clearTimeout(sTimer); sTimer = setTimeout(watchdog, 100); } sTarget = clamp(y, 0, maxY()); animating = true; if (!sRaf) schedule(); };
   // A watchdog only for browsers that withhold frames mid-scroll: if no frame has stepped the easing for 90 ms, step it.
   const watchdog = () => { if (!animating) return; if (performance.now() - sLast > 90) step(); sTimer = setTimeout(watchdog, 100); };
   addEventListener('wheel', e => {
@@ -690,7 +691,7 @@ form?.addEventListener('submit', e => {
   const doneEl = form.querySelector('.field__done'); doneEl.tabIndex = -1;
   // Your number: one of the twelve, stamped onto the tray this second, and the tray turns over to show it.
   const n = 189 + Math.floor(Math.random() * 12), num = `Nº ${String(n).padStart(3, '0')}`;
-  scene?.setNumber(n);
+  scene?.setNumber(n); scene?.burst(70);
   html.classList.add('has-number');
   const contact = document.getElementById('contact');
   resplit(contact.querySelector('.heading'), 'Eleven numbers left.');
@@ -780,6 +781,106 @@ if (nativeShare && navigator.share) { nativeShare.hidden = false; nativeShare.ad
   if (tag && from >= 1 && from <= 200) tag.textContent = `Sent by the keeper of Nº ${String(from).padStart(3, '0')}.`;
 }
 
+// --- Drawing views: plan, the live section cut, for scale --------------------------------------------------
+const drawingEl = document.getElementById('drawing');
+const dviewButtons = [...document.querySelectorAll('[data-dview]')];
+dviewButtons.forEach(b => b.addEventListener('click', () => {
+  const v = b.dataset.dview;
+  dviewButtons.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (v === 'plan') { delete drawingEl.dataset.view; drawingEl.dataset.viewPortrait = 'slotTop'; }
+  else { drawingEl.dataset.view = v; drawingEl.dataset.viewPortrait = v; }
+  const note = document.getElementById('drawingNote');
+  if (note) note.textContent = v === 'scale' ? 'Bank card 85.6 × 54. Phone 147.6 × 71.6. Tray Ø 200. All in millimetres, all to the same scale.'
+    : v === 'section' ? 'Section A–A, live: the near half taken away, the face hatched as on the drawing. Drag to look around it.'
+    : 'The drawing on the right, live: cut it through, or set it beside things you know the size of.';
+  animateNext = true; trackSections();
+}));
+
+// --- Take the file: the tray as a binary glTF, written in the browser -------------------------------------
+const takeFile = document.getElementById('takeFile');
+takeFile?.addEventListener('click', async () => {
+  if (!scene || takeFile.disabled) return;
+  const label = takeFile.innerHTML; takeFile.disabled = true; takeFile.textContent = 'Writing the file…';
+  try {
+    const buf = await scene.exportGLB();
+    const url = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'holm-1.glb'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    takeFile.textContent = `Saved · ${(buf.byteLength / 1048576).toFixed(1)} MB`; sound.tick(0.7);
+  } catch (err) { console.warn(err); takeFile.textContent = 'Could not write the file'; }
+  setTimeout(() => { takeFile.innerHTML = label; takeFile.disabled = false; }, 2600);
+});
+
+// --- Lightbox: a plate at full size -------------------------------------------------------------------------
+const lightbox = document.getElementById('lightbox'), lightboxMedia = document.getElementById('lightboxMedia'), lightboxCap = document.getElementById('lightboxCap');
+function closeLightbox() { if (!lightbox || lightbox.hidden) return; lightbox.hidden = true; lightboxMedia.replaceChildren(); }
+document.querySelectorAll('.plate img, .plate video').forEach(el => el.addEventListener('click', () => {
+  if (!lightbox) return;
+  const big = el.cloneNode(true); big.removeAttribute('data-tray'); big.removeAttribute('width'); big.removeAttribute('height');
+  if (big.tagName === 'VIDEO') { big.muted = true; big.loop = true; big.autoplay = true; big.setAttribute('playsinline', ''); big.play?.().catch(() => {}); }
+  lightboxMedia.replaceChildren(big);
+  const fig = el.closest('figure'); lightboxMedia.style.background = fig ? getComputedStyle(fig).backgroundColor : '';   // transparent renders keep their plate's ground
+  lightboxCap.textContent = el.closest('figure')?.querySelector('figcaption')?.textContent || '';
+  lightbox.hidden = false; sound.tick(0.5);
+}));
+lightbox?.addEventListener('click', closeLightbox);
+document.getElementById('lightboxClose')?.addEventListener('click', closeLightbox);
+
+// --- Tour: sit back. The page glides itself through every beat, doing what a visitor would ------------------
+const tourButton = document.getElementById('tour');
+let tourOn = false, tourToken = 0;
+const tourSleep = (ms, tok) => new Promise(r => setTimeout(r, ms)).then(() => tourOn && tok === tourToken);
+async function tourGlide(y, tau, tok) {
+  y = clamp(y, 0, html.scrollHeight - innerHeight);
+  if (glideTo) glideTo(y, tau); else window.scrollTo({ top: y, behavior: reducedMotion ? 'instant' : 'smooth' });
+  const t0 = performance.now();
+  while (tourOn && tok === tourToken && Math.abs(scrollY - y) > 3 && performance.now() - t0 < 7000) await new Promise(r => setTimeout(r, 80));
+  return tourOn && tok === tourToken;
+}
+function tourSteps() {
+  const vh = innerHeight, steps = [];
+  for (const sec of mainSections) {
+    const top = sec.offsetTop, h = sec.offsetHeight;
+    if (sec.id === 'top') { steps.push({ y: 0, dwell: 2400 }); continue; }
+    if (sec.id === 'features') { for (const mk of markers) steps.push({ el: mk, dwell: 3600, act: mk.dataset.step === '1' ? 'coins' : null }); continue; }
+    if (h > vh * 1.5) { const n = Math.max(2, Math.round(h / vh)); for (let i = 0; i <= n; i++) steps.push({ y: top + (h - vh) * i / n, dwell: i === 0 ? 1600 : 700, tau: 900 }); continue; }
+    steps.push({ y: top, dwell: sec.id === 'flip' ? 4600 : sec.id === 'foot' ? 4000 : 3000, act: sec.id === 'flip' ? 'flip' : null });
+  }
+  return steps;
+}
+function setTour(on) {
+  tourOn = on; tourToken++;
+  html.classList.toggle('is-touring', on);
+  tourButton?.setAttribute('aria-pressed', String(on));
+  tourButton?.setAttribute('aria-label', on ? 'Stop the tour' : 'Tour: let the page play itself');
+}
+async function runTour() {
+  setTour(true); const tok = tourToken; sound.tick(0.6);
+  for (const st of tourSteps()) {
+    const y = st.el ? st.el.getBoundingClientRect().top + scrollY - innerHeight / 2 : st.y;
+    if (!await tourGlide(y, st.tau || 700, tok)) return;
+    if (st.act === 'coins') for (let i = 0; i < 3; i++) { if (!await tourSleep(650, tok)) return; scene?.dropCoin(); }
+    if (st.act === 'flip') { if (!await tourSleep(1400, tok)) return; flipButton?.click(); if (!await tourSleep(2400, tok)) return; flipButton?.click(); }
+    if (!await tourSleep(st.dwell, tok)) return;
+  }
+  if (tourOn && tok === tourToken) setTour(false);
+}
+tourButton?.addEventListener('click', () => (tourOn ? setTour(false) : runTour()));
+for (const ev of ['wheel', 'touchstart', 'pointerdown']) addEventListener(ev, e => { if (tourOn && !e.target?.closest?.('#tour')) setTour(false); }, { passive: true });
+
+// --- Tilt: on a phone the tray leans with the hand, and the lamp follows -------------------------------------
+if (scene && !reducedMotion && matchMedia('(pointer: coarse)').matches && 'DeviceOrientationEvent' in window) {
+  let base = null;
+  const onTilt = e => { if (e.gamma == null || e.beta == null) return; if (base === null) base = e.beta; scene.setPointer(clamp(e.gamma / 22, -1, 1), clamp((e.beta - base) / 22, -1, 1)); };
+  const arm = () => {
+    try {
+      const ask = typeof DeviceOrientationEvent.requestPermission === 'function' ? DeviceOrientationEvent.requestPermission() : Promise.resolve('granted');
+      ask.then(r => { if (r === 'granted') addEventListener('deviceorientation', onTilt, { passive: true }); }).catch(() => {});
+    } catch {}
+  };
+  addEventListener('touchend', arm, { once: true, passive: true });
+}
+
 // --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
 const keysCard = document.getElementById('keys');
 const showKeys = (on) => { if (keysCard) keysCard.hidden = !on; };
@@ -793,7 +894,9 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   const k = e.key;
   if (k === '?') { showKeys(keysCard?.hidden); sound.tick(0.5); return; }
-  if (k === 'Escape') { showKeys(false); return; }
+  if (k === 'Escape') { showKeys(false); closeLightbox(); if (tourOn) setTour(false); return; }
+  if (k === 'p' || k === 'P') { tourOn ? setTour(false) : runTour(); return; }
+  if (tourOn) setTour(false);
   if (k === 'ArrowDown' || k === 'j' || k === 'PageDown') { e.preventDefault(); gotoBeat(1); }
   else if (k === 'ArrowUp' || k === 'k' || k === 'PageUp') { e.preventDefault(); gotoBeat(-1); }
   else if (k === 'd' || k === 'D') { if (featuresActive && currentStep === '1') dropButton?.click(); else { cancelWheel(); markers[0]?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'center' }); } }
@@ -810,7 +913,7 @@ if (scene && !reducedMotion) {
   const bump = () => { idleAt = performance.now(); };
   for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll']) addEventListener(ev, bump, { passive: true });
   setInterval(() => {
-    if (document.hidden || !html.classList.contains('is-ready') || performance.now() - idleAt < 14000) return;
+    if (document.hidden || tourOn || !html.classList.contains('is-ready') || performance.now() - idleAt < 14000) return;
     idleAt = performance.now() - 6000;                          // the next nudge, if still idle, eight seconds on
     if (featuresActive && currentStep === '1') scene.dropCoin();
     else if (sectionEl?.id === 'flip') flipButton?.click();

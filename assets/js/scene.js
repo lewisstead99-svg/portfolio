@@ -550,6 +550,7 @@ export function createScene(canvas, options = {}) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
+  renderer.localClippingEnabled = true;                            // the section cut clips the tray's materials only
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;                    // soft enough at 2048 with a radius; PCFSoft costs several times more per pixel
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -674,7 +675,75 @@ export function createScene(canvas, options = {}) {
   for (let i = 0; i < CHIPS; i++) { chips.setColorAt(i, _tmpC.setHSL(0.075, 0.42, 0.42 + Math.random() * 0.22)); _o3.scale.setScalar(0); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix); }
   latheGroup.add(chips);
   let chipAcc = 0, chipHead = 0;
+  // ---- Section A–A, live: a clipping plane facing the lens sweeps in and takes the near half away; the cut face is
+  // the profile polygon, hatched like the drawing. Only the tray's own materials are clipped.
+  const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 2);
+  let cutT = 0, cutTarget = 0, cutBound = false;
+  const cutMats = [wood, stampFloor.material, stampUnder.material, wire.material];
+  function bindCut(on) { if (on === cutBound) return; cutBound = on; for (const m of cutMats) { m.clippingPlanes = on ? [cutPlane] : null; m.needsUpdate = true; } }
+  const capShape = new THREE.Shape();
+  { const P = T.morph.P; capShape.moveTo(P[0].x, P[0].y); for (let j = 1; j < P.length; j++) capShape.lineTo(P[j].x, P[j].y); for (let j = P.length - 1; j >= 0; j--) capShape.lineTo(-P[j].x, P[j].y); capShape.closePath(); }
+  const hatchTex = (() => {
+    const [c, ctx] = makeCanvas(256, 256);
+    ctx.fillStyle = '#5a3320'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = 'rgba(255,237,215,0.8)'; ctx.lineWidth = 2.5;
+    for (let d = -256; d < 512; d += 64) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + 256, 256); ctx.stroke(); }
+    const t = tex(c, { repeat: [3, 3] }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); return t;
+  })();
+  const cap = new THREE.Mesh(new THREE.ShapeGeometry(capShape, 12), new THREE.MeshStandardMaterial({ map: hatchTex, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0, polygonOffset: true, polygonOffsetFactor: -2 }));
+  cap.visible = false; cap.renderOrder = 2; scene.add(cap);
+
+  // ---- For scale: a bank card (85.6 × 54 × 0.76) and a phone (147.6 × 71.6 × 7.8) beside the tray
+  const scaleGroup = new THREE.Group(); scaleGroup.visible = false; scene.add(scaleGroup);
+  let scaleT = 0, scaleTarget = 0;
+  const roundedSlab = (w, d, h, r, mat) => {
+    const sh = new THREE.Shape(); const x = -w / 2, y = -d / 2;
+    sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r); sh.lineTo(x + w, y + d - r); sh.quadraticCurveTo(x + w, y + d, x + w - r, y + d);
+    sh.lineTo(x + r, y + d); sh.quadraticCurveTo(x, y + d, x, y + d - r); sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false, curveSegments: 10 }).rotateX(-Math.PI / 2).translate(0, 0, 0);
+    const m = new THREE.Mesh(g, mat); m.castShadow = true; return m;
+  };
+  const scaleMats = [];
+  const smat = (opts) => { const m = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0, ...opts }); scaleMats.push(m); return m; };
+  const card = new THREE.Group();
+  { card.add(roundedSlab(0.856, 0.54, 0.0076, 0.031, smat({ color: '#2a2c33', roughness: 0.55 })));
+    const chipM = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.002, 0.09), smat({ color: '#9a8352', roughness: 0.35, metalness: 1 })); chipM.position.set(-0.24, 0.0086, -0.06); card.add(chipM);
+    const emboss = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.0015, 0.05), smat({ color: '#3a3d46', roughness: 0.6 })); emboss.position.set(-0.05, 0.0083, 0.13); card.add(emboss); }
+  const phone = new THREE.Group();
+  { phone.add(roundedSlab(0.716, 1.476, 0.078, 0.11, smat({ color: '#15161a', roughness: 0.4, metalness: 0.6 })));
+    const screen = roundedSlab(0.67, 1.43, 0.002, 0.09, smat({ color: '#07070a', roughness: 0.12, metalness: 0.3 })); screen.position.y = 0.078; phone.add(screen);
+    const island = roundedSlab(0.30, 0.31, 0.012, 0.07, smat({ color: '#1e2026', roughness: 0.35, metalness: 0.5 })); island.position.set(-0.17, -0.012, -0.55); phone.add(island); }
+  scaleGroup.add(card, phone);
+  function layoutScale(portrait) {
+    if (portrait) { card.position.set(-0.55, 0, -1.55); card.rotation.y = 0.12; phone.position.set(0.5, 0, 1.75); phone.rotation.y = -0.08; }
+    else { card.position.set(-1.38, 0, 0.25); card.rotation.y = -0.18; phone.position.set(1.32, 0, -0.1); phone.rotation.y = 0.1; }
+  }
+  layoutScale(false);
+
   const CUT_AZ = 40 * DEG, X_AXIS = new THREE.Vector3(1, 0, 0), _tip = new THREE.Vector3(), _hdir = new THREE.Vector3();
+  // A chip is a shaving: the lathe sprays them from the tool, and a claimed number bursts a handful from the pocket.
+  function emitChip(px, py, pz, vx, vy, vz) {
+    const c = chip[chipHead]; chipHead = (chipHead + 1) % CHIPS;
+    c.life = c.max = 0.6 + Math.random() * 0.6;
+    c.p.set(px, py, pz); c.v.set(vx, vy, vz);
+    c.r.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+    c.w.set((Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24);
+  }
+  let chipsAlive = false;
+  function updateChips(dt) {
+    let alive = false;
+    for (let i = 0; i < CHIPS; i++) {
+      const c = chip[i];
+      if (c.life <= 0) continue;
+      c.life -= dt; alive = true;
+      c.v.y -= 6.5 * dt; c.p.addScaledVector(c.v, dt);
+      c.r.x += c.w.x * dt; c.r.y += c.w.y * dt; c.r.z += c.w.z * dt;
+      const f = clamp(c.life / c.max, 0, 1), sc = c.life > 0 ? smooth(f / 0.35) : 0;
+      _o3.position.copy(c.p); _o3.rotation.copy(c.r); _o3.scale.setScalar(sc); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix);
+    }
+    chips.instanceMatrix.needsUpdate = true;
+    chipsAlive = alive;
+  }
   const wrapPi = (a) => ((a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
   function updateLathe(dt, eff, yawRad) {
     latheGroup.rotation.y = yawRad;
@@ -696,24 +765,10 @@ export function createScene(canvas, options = {}) {
     chipAcc += rate * dt;
     while (chipAcc >= 1) {
       chipAcc -= 1;
-      const c = chip[chipHead]; chipHead = (chipHead + 1) % CHIPS;
-      c.life = c.max = 0.6 + Math.random() * 0.6;
-      c.p.copy(_tip).addScalar(0).add(new THREE.Vector3((Math.random() - 0.5) * 0.04, (Math.random()) * 0.03, (Math.random() - 0.5) * 0.04));
       const sp = 1.2 + Math.random() * 1.4;
-      c.v.set(Math.cos(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6, 0.9 + Math.random() * 1.1, -Math.sin(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6 + 0.4);
-      c.r.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
-      c.w.set((Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24);
+      emitChip(_tip.x + (Math.random() - 0.5) * 0.04, _tip.y + Math.random() * 0.03, _tip.z + (Math.random() - 0.5) * 0.04,
+        Math.cos(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6, 0.9 + Math.random() * 1.1, -Math.sin(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6 + 0.4);
     }
-    for (let i = 0; i < CHIPS; i++) {
-      const c = chip[i];
-      if (c.life <= 0) continue;
-      c.life -= dt;
-      c.v.y -= 6.5 * dt; c.p.addScaledVector(c.v, dt);
-      c.r.x += c.w.x * dt; c.r.y += c.w.y * dt; c.r.z += c.w.z * dt;
-      const f = clamp(c.life / c.max, 0, 1), sc = c.life > 0 ? smooth(f / 0.35) : 0;
-      _o3.position.copy(c.p); _o3.rotation.copy(c.r); _o3.scale.setScalar(sc); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix);
-    }
-    chips.instanceMatrix.needsUpdate = true;
   }
 
   // ---- the hero set: mat, contact shadow, tools (only these fade + sink during LIFT)
@@ -917,7 +972,9 @@ export function createScene(canvas, options = {}) {
     reviewsSlot: { elev: 35, dynamic: true },   // the top row of the reviews, between heading and body
     letterO:{ elev: 89.5, dynamic: true },
     footO:  { elev: 89.5, dynamic: true },
-    lathe:  { elev: 28, width: 0.50, nx: 0, ny: -0.08, pwidth: 0.85, pnx: 0, pny: -0.22, lathe: true },   // the turning beat: the blank becomes the tray with the scroll
+    lathe:  { elev: 28, width: 0.50, nx: 0, ny: -0.08, pwidth: 0.85, pnx: 0, pny: -0.22, lathe: true },
+    section: { elev: 21, width: 0.46, nx: 0, ny: -0.02, pwidth: 0.82, pnx: 0, pny: -0.25, cut: true },      // the drawing's Section A–A, live: the near half clipped away, the face hatched
+    scale:  { elev: 64, width: 0.31, nx: -0.04, ny: 0, pwidth: 0.50, pnx: 0, pny: -0.25, scale: true },          // a bank card and a phone beside it, both to size   // the turning beat: the blank becomes the tray with the scroll
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
     // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
@@ -1098,6 +1155,7 @@ export function createScene(canvas, options = {}) {
     // The lathe: the morph follows the beat's scroll progress while the beat is on, and eases back to the finished
     // tray when it is left; the tray spins while there is still wood to take off.
     const oL = oNow && oNow.lathe ? 1 : 0;
+    cutTarget = oNow && oNow.cut ? 1 : 0; scaleTarget = oNow && oNow.scale ? 1 : 0;
     latheT += (oL - latheT) * (snap ? 1 : Math.min(1, a * 1.2));
     if (latheT < 0.001 && !oL) latheT = 0;
     const eff = 1 - latheT * (1 - turnT);
@@ -1106,8 +1164,25 @@ export function createScene(canvas, options = {}) {
     spinF = latheT * (1 - smooth((turnT - 0.9) / 0.1));
     if (!isStatic && !reduced) latheAngle = (latheAngle + 7.5 * spinF * dt) % (Math.PI * 2);
     trayGroup.rotation.y = latheT * wrapPi(latheAngle);
-    latheGroup.visible = latheT > 0.01;
-    if (latheGroup.visible) updateLathe(dt, eff, view.yaw * DEG);
+    latheGroup.rotation.y = view.yaw * DEG;
+    if (latheT > 0.01) updateLathe(dt, eff, view.yaw * DEG); else chisel.visible = false;
+    if (latheT > 0.01 || chipsAlive) updateChips(dt);
+    latheGroup.visible = latheT > 0.01 || chipsAlive;
+    // Section A–A: the plane faces the lens (the tray's yaw drifts, so it is set every frame) and sweeps in
+    // from beyond the rim to the axis; the hatched face fades in over the last part of the sweep.
+    cutT += (cutTarget - cutT) * (snap ? 1 : Math.min(1, a * 1.1));
+    if (cutT < 0.001 && !cutTarget) cutT = 0;
+    bindCut(cutT > 0.001);
+    if (cutT > 0.001) {
+      const yr = view.yaw * DEG, sy = Math.sin(yr), cy = Math.cos(yr);
+      cutPlane.normal.set(-sy, 0, -cy); cutPlane.constant = lerp(1.25, 0, smooth(cutT));
+      cap.rotation.y = yr; cap.material.opacity = smooth((cutT - 0.55) / 0.45); cap.visible = cap.material.opacity > 0.01;
+    } else cap.visible = false;
+    // For scale: the card and the phone settle onto the plane beside the tray and fade with the beat.
+    scaleT += (scaleTarget - scaleT) * (snap ? 1 : Math.min(1, a * 1.1));
+    if (scaleT < 0.001 && !scaleTarget) scaleT = 0;
+    scaleGroup.visible = scaleT > 0.01;
+    if (scaleGroup.visible) { const k = smooth(scaleT); scaleGroup.rotation.y = view.yaw * DEG; scaleGroup.position.y = (1 - k) * 0.5; for (const m of scaleMats) m.opacity = k; }   // laid out relative to the lens: card left, phone right
     // The watch keeps the visitor's time.
     if (coinGroup.visible && watchProp.visible) {
       const d = new Date(), hh = watchProp.userData.hands;
@@ -1255,6 +1330,22 @@ export function createScene(canvas, options = {}) {
     },
     onLand: null,                                                // (impact 0..1, 'coin' | 'prop') when something meets the pocket
     setTurn(t) { turnT = clamp(Number(t) || 0, 0, 1); requestRender(); },
+    burst(n = 60) {
+      if (reduced && isStatic) return;
+      for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, sp = 1.4 + Math.random() * 1.6; emitChip((Math.random() - 0.5) * 0.6, FLOOR_Y + 0.05, (Math.random() - 0.5) * 0.6, Math.cos(a) * sp * 0.6, 1.8 + Math.random() * 1.6, Math.sin(a) * sp * 0.6); }
+      chipsAlive = true; latheGroup.visible = true; requestRender();
+    },
+    // The tray as a file: the finished lathe, its wood and its stamps, as a binary glTF. Textures are capped so the
+    // file stays a few megabytes.
+    async exportGLB() {
+      const { GLTFExporter } = await import('./vendor/GLTFExporter.js');
+      const g = new THREE.Group(); g.name = 'HOLM-1';
+      const woodCopy = wood.clone(); woodCopy.clippingPlanes = null; woodCopy.transparent = false; woodCopy.opacity = 1; woodCopy.color.set(1, 1, 1);
+      const mesh = new THREE.Mesh(T.geo, woodCopy); mesh.name = 'tray'; g.add(mesh);
+      for (const st of [stampFloor, stampUnder]) { const c = st.clone(); c.material = st.material.clone(); c.material.clippingPlanes = null; g.add(c); }
+      const buf = await new Promise((res, rej) => new GLTFExporter().parse(g, res, rej, { binary: true, maxTextureSize: 1024 }));
+      return buf instanceof ArrayBuffer ? buf : new TextEncoder().encode(JSON.stringify(buf)).buffer;
+    },
     getTurn() { return { t: turnT, active: latheT, eff: morphAt, cutting: clamp(cutRate / 0.6, 0, 1), spin: spinF }; },
     setHour(h) {
       h = ((Number(h) || 0) % 24 + 24) % 24;
@@ -1300,7 +1391,7 @@ export function createScene(canvas, options = {}) {
       W = Math.max(1, width | 0); H = Math.max(1, height | 0); aspect = W / H;
       const heroCap = Math.min(0.38, 0.6 / aspect);           // hero: never taller than 60% of the viewport
       widthKeys[0][1] = widthKeys[1][1] = heroCap;
-      layoutProps(aspect < 1);
+      layoutProps(aspect < 1); layoutScale(aspect < 1);
       baseDpr = Math.min(dpr || 1, W >= 1400 ? 1.5 : 2);            // a 1.5x tray is indistinguishable from 2x on a wide screen and 44% cheaper
       applyPixelRatio();
       renderer.setSize(W, H, false);

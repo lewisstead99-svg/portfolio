@@ -16,7 +16,7 @@ The page follows the beat structure of the reference site, section for section, 
 | 00 | Hero | Top-down "photograph": the tray on a cutting mat with pencils, craft knife, brass ruler and paperclip. Wordmark upper-left, copy over the photo, info card, turntable card, scroll cue, right-edge progress bar. |
 | 01 | Intro | The mat falls away, scattered letters drift past, the tray tumbles through the void and rests at 3/4 between heading and body. |
 | 02 | Statement | "Made by hand." types itself in, ember model tag, top-down tray with dashed callouts, view pills. |
-| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of seven plates slides through, one of them a looping turntable video rendered from the scene. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
+| 03 | Gallery (click a plate for it at full size) | A giant "it's furniture." rolls across the screen behind a window, then a carousel of seven plates slides through, one of them a looping turntable video rendered from the scene. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
 | 04 | Features | Pinned split: frosted panel with icon, label, copy and heading that scramble into place. Each beat changes the world: a hall table with keys, a watch and coins landing in the pocket (click to drop more, and a live readout weighs what is in it); back on the cutting mat under orange measuring handles; then the whole scene grades deeper as the walnut ages, with a gauge marker following. |
 | 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
@@ -25,8 +25,8 @@ The page follows the beat structure of the reference site, section for section, 
 | 08b | Turning | A tall pinned beat: the scroll carves a Ø 210 × 30 blank into the tray while it spins, the same lathe geometry morphing between the two profiles, a chisel at the cut and shavings flying off it. Readouts follow the cut. |
 | 09 | Reviews | One large tray in the centre column, heading and body above it, three quote cards with ember highlights and a 4.9 / 5 summary around it. |
 | 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
-| 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
-| 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
+| 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. "Take the file" writes the tray as a binary glTF in the browser, textures and stamps included. |
+| 11 | Drawing | Specs, a dimensioned technical drawing with a hatched section, and three views of the live tray: plan; Section A–A, where a clipping plane facing the lens sweeps in and takes the near half away and the cut face is the profile polygon hatched like the drawing; and For scale, a bank card and a phone laid beside it at true size. |
 | 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, colophon. Leave an address and one of the twelve becomes yours: the number is stamped onto the tray that second, the tray turns over to show it, the count drops to eleven, your dot is ringed, and a card with the frame can be saved. |
 | 13 | Foot | The close: a Fabricatr pitch with the page's one filled pill ("Start a project"), a share card whose link carries your number to the friend (copy, WhatsApp, X, LinkedIn, email, native share), the link row, and the wordmark at full width with the tray back in its O. A friend arriving through the link is greeted by name of number in the hero. |
 
@@ -71,6 +71,9 @@ The page follows the beat structure of the reference site, section for section, 
   the pointer, so highlights and the grain shift as you move. The hero photograph is lit for the visitor's
   own hour: cooler and higher in the morning, warm and low in the evening, with a caption saying so. The
   watch on the hall table keeps the visitor's time.
+- **It can play itself.** "Tour" in the nav (or P) glides the page through every beat at a cinematic
+  pace, dropping the coins and flipping the tray where a visitor would, and stops the moment you touch
+  anything. On a phone the tray leans with the hand through the gyroscope, and the lamp follows.
 - **It can be driven from the keyboard.** Arrows step between beats, D drops a coin, F flips, T runs the
   turntable, S toggles sound, ? shows the card. Left alone for a while it nudges itself once: a coin, a
   flip or a quarter turn.

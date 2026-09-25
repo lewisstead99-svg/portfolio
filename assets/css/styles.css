@@ -137,6 +137,10 @@ main, .nav, .serial, .progress, .cue { position: relative; z-index: 1; }
 .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(2) { animation-delay: -.25s; } .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(3) { animation-delay: -.5s; } .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(4) { animation-delay: -.15s; }
 @keyframes wave { from { height: 2px; } to { height: 10px; } }
 .nav__sound-state { display: inline-block; min-width: 2.2ch; text-align: left; }
+.nav__tour-stop, .nav__tour-on { display: none; }
+.nav__tour[aria-pressed="true"] .nav__tour-stop, .nav__tour[aria-pressed="true"] .nav__tour-on { display: inline; }
+.nav__tour[aria-pressed="true"] .nav__tour-play, .nav__tour[aria-pressed="true"] .nav__tour-off { display: none; }
+.is-touring .hint { opacity: 0 !important; }
 .is-light .nav, .is-light.is-scrolled .nav { color: var(--color-walnut-shadow); background: linear-gradient(rgba(255, 237, 215, 0.9), rgba(255, 237, 215, 0)); }
 .is-light :focus-visible { outline-color: var(--color-walnut-shadow); }
 
@@ -196,6 +200,8 @@ section { position: relative; min-height: var(--vh); }
 .specs__row { display: flex; justify-content: space-between; gap: var(--spacing-18); padding: var(--spacing-10) 0; border-top: 1px dashed var(--color-cork-border); }
 .specs__row:last-child { border-bottom: 1px dashed var(--color-cork-border); }
 .specs dd { font-size: var(--text-subheading); line-height: var(--leading-subheading); }
+.pills--drawing { margin-top: var(--spacing-6); }
+.drawing__note { color: var(--color-driftwood); max-width: 40ch; }
 .price { font-size: var(--text-subheading); line-height: var(--leading-subheading); }
 
 /* Statement */
@@ -535,6 +541,16 @@ section { position: relative; min-height: var(--vh); }
 .has-number .edition__dot--yours, .has-number .edition__dot--yours + * { display: inline-block; }
 .field__done { flex-wrap: wrap; gap: var(--spacing-10); }
 .field__done .btn { margin-left: auto; }
+
+/* Lightbox: a plate at full size over the page */
+.lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 72px var(--gutter); background: rgba(16, 9, 4, .94); }
+.lightbox[hidden] { display: none; }
+.lightbox__media { display: grid; place-items: center; max-width: 100%; border: 1px dashed var(--color-cork-border); }
+.lightbox__media img, .lightbox__media video { display: block; max-width: min(92vw, 1400px); max-height: 78vh; width: auto; height: auto; }
+.lightbox__close { position: fixed; top: var(--spacing-24); right: var(--gutter); }
+.lightbox__cap { position: fixed; left: 50%; bottom: var(--spacing-24); transform: translateX(-50%); white-space: nowrap; }
+.plate img, .plate video { cursor: zoom-in; }
+html.has-cursor .plate img, html.has-cursor .plate video { cursor: none; }
 
 /* Keys card */
 .keys { position: fixed; left: 50%; top: 50%; z-index: 40; transform: translate(-50%, -50%); width: min(360px, calc(100% - 2 * var(--gutter))); background: rgba(16, 9, 4, .94); }
