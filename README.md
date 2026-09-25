@@ -17,7 +17,7 @@ The page follows the beat structure of the reference site, section for section, 
 | 01 | Intro | The mat falls away, scattered letters drift past, the tray tumbles through the void and rests at 3/4 between heading and body. |
 | 02 | Statement | "Made by hand." types itself in, ember model tag, top-down tray with dashed callouts, view pills. |
 | 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of seven plates slides through, one of them a looping turntable video rendered from the scene. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
-| 04 | Features | Pinned split: frosted panel with icon, label, copy and heading that scramble into place. Each beat changes the world: a hall table with keys, a watch and coins landing in the pocket (click to drop more); back on the cutting mat under orange measuring handles; then the whole scene grades deeper as the walnut ages, with a gauge marker following. |
+| 04 | Features | Pinned split: frosted panel with icon, label, copy and heading that scramble into place. Each beat changes the world: a hall table with keys, a watch and coins landing in the pocket (click to drop more, and a live readout weighs what is in it); back on the cutting mat under orange measuring handles; then the whole scene grades deeper as the walnut ages, with a gauge marker following. |
 | 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
 | 07 | Macro | The camera drops to grain level across the rim; a friction-coefficient card. |
@@ -26,7 +26,8 @@ The page follows the beat structure of the reference site, section for section, 
 | 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
 | 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
-| 12 | Contact | Underline-only email field, ember "Built by" credit, the single filled pill, colophon. |
+| 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, the single filled pill, colophon. |
+| 13 | Foot | A link row over the wordmark at full width, and the tray flies back into its O to close the loop. |
 
 - **Scroll-linked flights.** Every hand-over between beats is a blend driven by scroll position, not a
   threshold: as the next section's top edge crosses its line the camera travels from the previous view to
@@ -54,6 +55,12 @@ The page follows the beat structure of the reference site, section for section, 
   into the pocket by clicking it; in the provenance beat you flip it over; in the macro beat the pointer pans
   along the rim. Pills and nav links lean toward the pointer, gallery plates tilt. All of it is mouse-only
   and off under reduced motion; touch keeps the scroll choreography.
+- **It can be heard.** A "Sound" toggle in the nav turns on a small procedural sound layer: a wooden knock
+  when something lands in the pocket, a metallic ring for coins, a whoosh for the flip, a tick for controls
+  and chapter changes. Nothing is downloaded; every sound is synthesised on the spot. Off by default,
+  remembered per browser, resumed only after a gesture.
+- **It knows where you are.** The loader counts to a hundred while the first frame compiles, and the
+  vertical serial on the right carries a chapter counter (05 / 15) that follows the beats.
 - **Degrades honestly.** Without WebGL the page shows static plates rendered from the same scene. Reduced
   motion is respected (no idle drift, no easing lag, no spin, no typing).
 

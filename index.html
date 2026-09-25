@@ -25,7 +25,7 @@
   <div class="loader" id="loader" aria-hidden="true">
     <span class="loader__mark">HOLM</span>
     <span class="loader__line"><span class="loader__fill"></span></span>
-    <span class="loader__label">Loading</span>
+    <span class="loader__label">Loading <span class="loader__pct" id="loaderPct">0%</span></span>
   </div>
 
   <!-- One WebGL scene renders the tray for the whole page: it starts as a top-down "photograph" and lifts into the void as you scroll. -->
@@ -46,10 +46,11 @@
       <a href="#features">Features</a>
       <a href="#product">Product</a>
       <a href="#contact">Contact</a>
+      <button class="nav__sound" type="button" id="sound" aria-pressed="false" aria-label="Sound off"><span class="nav__sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="nav__sound-text">Sound <span class="nav__sound-state">off</span></span></button>
     </nav>
   </header>
 
-  <p class="serial rise" style="--i:2" aria-hidden="true"><span class="serial__dot"></span>HOLM-1 Model</p>
+  <p class="serial rise" style="--i:2" aria-hidden="true"><span class="serial__dot"></span>HOLM-1 Model<span class="serial__chapter" id="chapter"></span></p>
   <div class="progress rise" style="--i:2" aria-hidden="true"><span class="progress__thumb" id="progress"></span></div>
   <p class="cue rise" style="--i:5" id="cue" aria-hidden="true">
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 7v10M8 13l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1"/></svg>
@@ -178,6 +179,9 @@
             </div>
             <div class="steps steps--action">
               <button class="btn btn--ghost step is-active" data-step="1" type="button" id="dropCoin">Drop a coin</button>
+            </div>
+            <div class="steps steps--ticker">
+              <p class="panel__ticker step is-active" data-step="1"><span>In the pocket</span><span class="ticker__val" id="heldWeight">0 g</span></p>
             </div>
             <div class="pills" role="group" aria-label="Feature">
               <button class="btn btn--ghost" type="button" data-goto="1" aria-pressed="true">01</button>
@@ -445,6 +449,8 @@
             <p class="field__done" role="status" aria-live="polite"></p>
             <p class="field__error" id="emailError" role="alert">Enter an email address, e.g. name@example.com</p>
           </form>
+          <div class="edition" id="edition" role="img" aria-label="Two hundred numbers: 188 taken, 12 still here"></div>
+          <p class="edition__key legal"><span class="edition__dot"></span>Found a desk<span class="edition__dot edition__dot--open"></span>Still here</p>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right credits">
@@ -454,6 +460,19 @@
           <p class="legal legal--lg">* Holm is a fictional product created for portfolio purposes. Type set in Inter in place of Halyard Display. Object rendered live with three.js.</p>
         </div>
       </div>
+    </section>
+
+    <!-- 15 FOOT — the wordmark once more, the tray back in its O -->
+    <section class="foot" id="foot" data-view="footO" data-nav="contact" data-cursor="drag" aria-label="Footer">
+      <div class="foot__row">
+        <nav class="foot__links" aria-label="Footer">
+          <a href="https://fabricatr.com" rel="author">Fabricatr.com</a>
+          <a href="https://oryzo.ai" rel="noopener">Reference · oryzo.ai</a>
+          <a href="#top">Back to the top</a>
+        </nav>
+        <p class="foot__meta">© 2026 Fabricatr · Made in Dorset · HOLM-1</p>
+      </div>
+      <p class="foot__word" role="img" aria-label="HOLM"><span class="foot__l">H</span><span class="foot__o" aria-hidden="true"></span><span class="foot__l">L</span><span class="foot__l">M</span></p>
     </section>
 
   </main>

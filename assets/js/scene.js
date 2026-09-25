@@ -818,6 +818,7 @@ export function createScene(canvas, options = {}) {
     light:  { elev: 89.5, dynamic: true },   // the tray is the o of "longevity": pinned to that glyph's box
     reviewsSlot: { elev: 35, dynamic: true },   // the top row of the reviews, between heading and body
     letterO:{ elev: 89.5, dynamic: true },
+    footO:  { elev: 89.5, dynamic: true },
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
     // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
@@ -984,6 +985,8 @@ export function createScene(canvas, options = {}) {
         c.vy -= 5.5 * dt; m.position.y += c.vy * dt;
         m.position.x += c.vx * dt; m.position.z += c.vz * dt;
         if (m.position.y <= c.rest) {
+          const impact = Math.abs(c.vy);
+          if (api.onLand && impact > 0.3) { try { api.onLand(clamp(impact / 4, 0, 1), c.kind || 'coin'); } catch {} }
           m.position.y = c.rest; c.vy = -c.vy * 0.32; c.vx *= 0.5; c.vz *= 0.5; c.bounces++;
           if (Math.abs(c.vy) < 0.25 || c.bounces > 3) { c.vy = 0; c.settled = true; }
         }
@@ -1008,8 +1011,8 @@ export function createScene(canvas, options = {}) {
     if (!isStatic) {
       if (coinT > 0.5 && !propsDropped) {
         propsDropped = true;
-        queue.push({ at: elapsed + 0.05, fn: () => dropObject(keysProp, -0.30, 0.34, 0.02, 0.9) });
-        queue.push({ at: elapsed + 0.45, fn: () => dropObject(watchProp, 0.24, -0.16, 0.042, -0.5) });
+        queue.push({ at: elapsed + 0.05, fn: () => dropObject(keysProp, -0.30, 0.34, 0.02, 0.9, 46) });
+        queue.push({ at: elapsed + 0.45, fn: () => dropObject(watchProp, 0.24, -0.16, 0.042, -0.5, 68) });
       }
       if (coinT < 0.05 && propsDropped && !(o && o.props)) { propsDropped = false; keysProp.visible = watchProp.visible = false; }
       for (let i = queue.length - 1; i >= 0; i--) if (elapsed >= queue[i].at) { const q = queue.splice(i, 1)[0]; q.fn(); }
@@ -1051,10 +1054,10 @@ export function createScene(canvas, options = {}) {
   canvas.addEventListener('webglcontextrestored', onContextRestored, false);
 
   // Drop any prop into the pocket: it falls from above, bounces once or twice and settles flat.
-  function dropObject(mesh, x, z, restH, rotY) {
+  function dropObject(mesh, x, z, restH, rotY, mass = 0) {
     mesh.visible = true;
     mesh.position.set(x, FLOOR_Y + 1.3, z); mesh.rotation.set(0, rotY, 0);
-    dropped.push({ mesh, vy: -0.3, vx: 0, vz: 0, rest: FLOOR_Y + restH, settled: false, bounces: 0, bound: 0.45, tiltX: (Math.random() - 0.5) * 0.5, tiltZ: (Math.random() - 0.5) * 0.5, spin: (Math.random() - 0.5) * 1.5 });
+    dropped.push({ mesh, kind: 'prop', mass, vy: -0.3, vx: 0, vz: 0, rest: FLOOR_Y + restH, settled: false, bounces: 0, bound: 0.45, tiltX: (Math.random() - 0.5) * 0.5, tiltZ: (Math.random() - 0.5) * 0.5, spin: (Math.random() - 0.5) * 1.5 });
     requestRender();
   }
 
@@ -1108,6 +1111,12 @@ export function createScene(canvas, options = {}) {
       scene.traverse(ob => { const ms = ob.isMesh ? (Array.isArray(ob.material) ? ob.material : [ob.material]) : []; for (const m of ms) for (const k of Object.keys(m)) { const v = m[k]; if (v && v.isTexture && !seenT.has(v)) { seenT.add(v); canvases++; } } });
       return { triangles: Math.round(tris), wireSegments: wire.geometry.getAttribute('position').count / 2, canvases, drawCalls: renderer.info.render.calls, lights: [key, spot, rim, front, bounce, hemi].length };
     },
+    onLand: null,                                                // (impact 0..1, 'coin' | 'prop') when something meets the pocket
+    getHeld() {
+      let grams = 0, settling = false;
+      for (const c of dropped) { if (!c.mesh.visible) continue; if (c.bounces > 0) grams += c.mass || 0; if (!c.settled) settling = true; }
+      return { grams, settling };
+    },
     dropCoin() {
       if (reduced && isStatic) return;
       const brass = Math.random() < 0.6;
@@ -1116,7 +1125,7 @@ export function createScene(canvas, options = {}) {
       mesh.position.set(Math.cos(ang) * rad, FLOOR_Y + 1.5, Math.sin(ang) * rad);
       mesh.rotation.y = Math.random() * Math.PI; mesh.castShadow = true;
       coinGroup.add(mesh);
-      dropped.push({ mesh, vy: -0.4, vx: (Math.random() - 0.5) * 0.5, vz: (Math.random() - 0.5) * 0.5, rest: FLOOR_Y + h / 2, settled: false, bounces: 0,
+      dropped.push({ mesh, kind: 'coin', mass: brass ? 8.75 : 6.5, vy: -0.4, vx: (Math.random() - 0.5) * 0.5, vz: (Math.random() - 0.5) * 0.5, rest: FLOOR_Y + h / 2, settled: false, bounces: 0,
         tiltX: (Math.random() - 0.5) * 1.6, tiltZ: (Math.random() - 0.5) * 1.6, spin: (Math.random() - 0.5) * 6 });
       let coins = dropped.filter(d => d.mesh !== keysProp && d.mesh !== watchProp);
       while (coins.length > 10) { const old = coins.shift(); dropped.splice(dropped.indexOf(old), 1); coinGroup.remove(old.mesh); }

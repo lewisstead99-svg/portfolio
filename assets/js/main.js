@@ -4,6 +4,7 @@
 // controls, nav state and the notify form. All rendering lives in scene.js.
 
 import { createScene } from './scene.js';
+import { createSound } from './sound.js';
 
 const html = document.documentElement;
 const canvas = document.getElementById('scene');
@@ -176,7 +177,16 @@ document.addEventListener('visibilitychange', () => (document.hidden ? scene?.st
 layoutGallery();
 
 // Reveal the page once the first frame is on screen; the loader holds a beat so its hairline can fill.
-const ready = () => html.classList.add('is-ready');
+const loaderPct = document.getElementById('loaderPct');
+const pctStart = performance.now();
+const tickPct = () => {
+  if (!loaderPct || html.classList.contains('is-ready')) return;
+  const t = Math.min(1, (performance.now() - pctStart) / 1400);
+  loaderPct.textContent = Math.round(99 * (1 - Math.pow(1 - t, 3))) + '%';
+  if (t < 1) requestAnimationFrame(tickPct);
+};
+tickPct();
+const ready = () => { html.classList.add('is-ready'); if (loaderPct) loaderPct.textContent = '100%'; };
 if (scene) requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ready, reducedMotion ? 0 : 700)));
 else ready();
 setTimeout(ready, 3500);
@@ -188,7 +198,7 @@ if (scene && !reducedMotion && matchMedia('(pointer: fine)').matches) {
 
 // --- Section reveals + light theme flag ---------------------------------------------------------------
 {
-  const els = document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery');
+  const els = document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot');
   const io = new IntersectionObserver(entries => entries.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }), { threshold: 0.2 });
@@ -199,6 +209,21 @@ if (scene && !reducedMotion && matchMedia('(pointer: fine)').matches) {
 // --- Nav links (state is set by trackSections below) ------------------------------------------------
 const navLinks = [...document.querySelectorAll('.nav__links a')];
 const byId = Object.fromEntries(navLinks.map(a => [a.getAttribute('href').slice(1), a]));
+
+// --- Sound: off until asked for; remembered per browser, resumed on the first gesture --------------------
+const sound = createSound();
+const soundButton = document.getElementById('sound');
+function setSound(on) {
+  soundButton?.setAttribute('aria-pressed', String(on));
+  soundButton?.setAttribute('aria-label', on ? 'Sound on' : 'Sound off');
+  const st = soundButton?.querySelector('.nav__sound-state'); if (st) st.textContent = on ? 'on' : 'off';
+  sound.setEnabled(on);
+  try { localStorage.setItem('holm-sound', on ? '1' : '0'); } catch {}
+}
+soundButton?.addEventListener('click', () => setSound(soundButton.getAttribute('aria-pressed') !== 'true'));
+try { if (localStorage.getItem('holm-sound') === '1') addEventListener('pointerdown', () => setSound(true), { once: true }); } catch {}
+if (scene) scene.onLand = (v, kind) => (kind === 'coin' ? sound.coin(v) : sound.knock(v));
+document.addEventListener('click', e => { if (e.target.closest('.btn, .nav__links a, .foot__links a')) sound.tick(0.6); });
 
 // --- Camera overrides: one resolver for section presets, feature beats and the product pills -----------
 let sectionEl = null, featureView = null, featuresActive = false, pillView = null, pillsActive = false;
@@ -269,6 +294,7 @@ const flipButton = document.getElementById('flipButton');
 const flipSection = document.getElementById('flip');
 flipButton?.addEventListener('click', () => {
   done.flip = true;
+  sound.whoosh();
   const on = flipButton.getAttribute('aria-pressed') !== 'true';
   flipButton.setAttribute('aria-pressed', String(on));
   flipSection.dataset.view = on ? (flipSection.dataset.flipView || 'flip') : 'flipTop';
@@ -280,7 +306,7 @@ flipButton?.addEventListener('click', () => {
 // line (half the viewport by default), the camera blends from the previous view to the next over half a
 // viewport of scroll, so the tray travels with the page instead of hopping when a threshold is crossed.
 // Read from geometry on every scroll: IntersectionObserver root margins are ignored in cross-origin iframes.
-const revealEls = [...document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery')];
+const revealEls = [...document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot')];
 const beats = [];
 document.querySelectorAll('main > section').forEach(sec => {
   if (sec.id === 'features') { markers.forEach((m, i) => beats.push({ el: i === 0 ? sec : m, view: () => m.dataset.view || null, own: i === 0 ? 0.55 : 0.5 })); return; }   // the first beat is owned by the section itself, so the blend begins as the panel scrolls in
@@ -292,6 +318,10 @@ const letterO = document.querySelector('.letters__o');
 const liveTile = document.querySelector('.always__tile--live');
 const lightO = document.querySelector('.light__o');
 const reviewsSlot = document.querySelector('.reviews__slot');
+const footO = document.querySelector('.foot__o');
+const mainSections = [...document.querySelectorAll('main > section')];
+const chapterEl = document.getElementById('chapter');
+let chapterIdx = -1;
 const slotSections = [...document.querySelectorAll('section[data-view-portrait]')];
 const photoImg = document.querySelector('.plate--photo img[data-tray]');
 const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
@@ -311,6 +341,11 @@ function trackSections() {
   const domView = dom.view();
   const section = dom.el.closest('section');
   sectionEl = section;
+  html.classList.toggle('is-end', section?.id === 'foot');
+  if (chapterEl && section) {
+    const i = mainSections.indexOf(section);
+    if (i >= 0 && i !== chapterIdx) { chapterEl.textContent = `${String(i + 1).padStart(2, '0')} / ${String(mainSections.length).padStart(2, '0')}`; if (chapterIdx >= 0) sound.tick(0.3); chapterIdx = i; }
+  }
   featuresActive = section?.id === 'features';
   if (featuresActive) { const st = dom.el.dataset.step || '1'; if (st !== currentStep) setStep(st); }
   featureView = featuresActive ? domView : null;
@@ -320,6 +355,7 @@ function trackSections() {
     // never fully leaves the frame and never sits doubled over another plate's printed tray.
     if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.2 * d), r.top + photoFrac[1] * r.height, d); }
     if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
+    if (footO) { const r = footO.getBoundingClientRect(); scene.setFocus('footO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
     if (lightO) { const r = lightO.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.98); }
     if (reviewsSlot) { const r = reviewsSlot.getBoundingClientRect(); scene.setFocus('reviewsSlot', r.left + r.width / 2, r.top + r.height * 0.5, Math.min(r.width * 0.72, r.height * 0.9, innerHeight * 0.64)); }
     if (liveTile) { const r = liveTile.getBoundingClientRect(); scene.setFocus('tile', r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.68); }
@@ -362,6 +398,8 @@ const hint = (() => {
   document.body.appendChild(el); return el;
 })();
 const done = { drag: false, drop: false, flip: false };
+const heldEl = document.getElementById('heldWeight');
+let heldLast = -1;
 const HINT_TEXT = { drag: 'Try to drag', drop: 'Try to click', flip: 'Try to click' };
 let followRaf = 0;
 function currentHint() {
@@ -386,6 +424,10 @@ function follow() {
     const on = sectionEl?.id === 'product' && b.visible && innerWidth > 820;
     callouts.classList.toggle('is-on', on);
     if (on) { const size = b.r * 2.4; callouts.style.width = callouts.style.height = size + 'px'; callouts.style.left = (b.x - size / 2) + 'px'; callouts.style.top = (b.y - size / 2) + 'px'; busy = true; }
+  }
+  if (heldEl && scene.getHeld) {
+    const on = featuresActive && currentStep === '1';
+    if (on) { const h = scene.getHeld(); const g = Math.round(h.grams); if (g !== heldLast) { heldLast = g; heldEl.textContent = `${g} g`; } if (h.settling) busy = true; }
   }
   if (hint) {
     const m = currentHint();
@@ -487,7 +529,8 @@ spinButton?.addEventListener('click', () => {
 // --- Pointer interaction: cursor, drag-to-rotate, click-to-drop / click-to-flip, magnetic controls ----
 const finePointer = matchMedia('(pointer: fine)').matches;
 const dropButton = document.getElementById('dropCoin');
-dropButton?.addEventListener('click', () => { scene?.dropCoin(); done.drop = true; });
+dropButton?.addEventListener('click', () => { scene?.dropCoin(); done.drop = true; kickFollow(); });
+setInterval(() => { if (featuresActive && currentStep === '1') kickFollow(); }, 300);   // the pocket weight follows the props as they land
 if (scene && finePointer && !reducedMotion) {
   const cursor = document.createElement('div');
   cursor.className = 'cursor is-hidden'; cursor.setAttribute('aria-hidden', 'true');
@@ -604,6 +647,19 @@ form?.addEventListener('submit', e => {
   form.classList.add('is-done');
   const doneEl = form.querySelector('.field__done'); doneEl.textContent = 'Noted. Your number is held.'; doneEl.tabIndex = -1; doneEl.focus();
 });
+
+// The edition: two hundred dots, the last twelve open.
+const edition = document.getElementById('edition');
+if (edition) {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 200; i++) {
+    const d = document.createElement('i'); d.style.setProperty('--i', i);
+    if (i >= 188) d.className = 'is-open';
+    d.title = `Nº ${String(i + 1).padStart(3, '0')}${i >= 188 ? ' · still here' : ''}`;
+    frag.appendChild(d);
+  }
+  edition.appendChild(frag);
+}
 
 // Initial state for the followers and the closing beat (their definitions sit above).
 trackCode();
