@@ -24,7 +24,9 @@
   <!-- Preloader: wordmark and a hairline that fills while the scene compiles its first frame. -->
   <div class="loader" id="loader" aria-hidden="true">
     <span class="loader__mark">HOLM</span>
-    <span class="loader__line"><span class="loader__fill"></span></span>
+    <svg class="loader__profile" viewBox="0 0 204 27" width="204" height="27" aria-hidden="true" focusable="false">
+      <path class="loader__path" pathLength="100" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round" d="M102 22 H181 Q183 22 183 24 H196.65 L199.7 21 L201.38 5 Q201.38 2 198.38 2 H197 Q194 2 194 5 L193.8 7.5 Q193.8 15.5 185.5 15.5 H102 M102 22 H23 Q21 22 21 24 H7.35 L4.3 21 L2.62 5 Q2.62 2 5.62 2 H7 Q10 2 10 5 L10.2 7.5 Q10.2 15.5 18.5 15.5 H102"/>
+    </svg>
     <span class="loader__label">Loading <span class="loader__pct" id="loaderPct">0%</span></span>
   </div>
 
@@ -65,7 +67,7 @@
         <p class="hero__tag">Made for keys. Built for desks.</p>
         <h1 class="wordmark">HOLM</h1>
       </div>
-      <p class="hero__copy rise" style="--i:2">Made to hold, to sit flat and to age well. Holm gives the smallest things on your desk one considered place to land.</p>
+      <div class="hero__copy rise" style="--i:2"><p>Made to hold, to sit flat and to age well. Holm gives the smallest things on your desk one considered place to land.</p><p class="hero__time legal" id="heroTime"></p></div>
       <div class="card hero__card rise" style="--i:3">
         <h2 class="card__heading">Designed<br>by Fabricatr,<br>the studio that<br>builds products<br>worth looking at.</h2>
         <hr class="rule">
@@ -181,7 +183,7 @@
               <button class="btn btn--ghost step is-active" data-step="1" type="button" id="dropCoin">Drop a coin</button>
             </div>
             <div class="steps steps--ticker">
-              <p class="panel__ticker step is-active" data-step="1"><span>In the pocket</span><span class="ticker__val" id="heldWeight">0 g</span></p>
+              <p class="panel__ticker step is-active" data-step="1"><span>In the pocket</span><span class="ticker__val" id="heldWeight">0 g</span><span class="ticker__note">The watch keeps your time</span></p>
             </div>
             <div class="pills" role="group" aria-label="Feature">
               <button class="btn btn--ghost" type="button" data-goto="1" aria-pressed="true">01</button>
@@ -319,6 +321,25 @@
     </section>
 
     <!-- 09 REVIEWS -->
+    <!-- 08b TURNING — the blank becomes the tray as you scroll: chisel at the cut, shavings flying -->
+    <section class="turning" id="turning" data-view="lathe" data-own="0.3" data-nav="product" data-cursor="drag">
+      <div class="turning__pin">
+        <div class="beat__head">
+          <p class="label">One afternoon on the lathe</p>
+          <h2 class="heading heading--centre" data-split>Turned, not moulded.</h2>
+          <p class="beat__body">A blank of 210 by 30 goes on the faceplate. Foot, chamfer and wall first; then it comes round and the pocket is cut to fourteen millimetres. A third of it leaves as shavings.*</p>
+        </div>
+        <div class="beat__stage" aria-hidden="true"></div>
+        <dl class="turning__read">
+          <div><dt>Removed</dt><dd id="turnPct">0%</dd></div>
+          <div><dt>Diameter</dt><dd id="turnDia">Ø 210</dd></div>
+          <div><dt>Height</dt><dd><span id="turnH">30</span> <span class="u">mm</span></dd></div>
+          <div><dt>Speed</dt><dd id="turnRpm">0 <span class="u">rpm</span></dd></div>
+        </dl>
+        <p class="footnote">* The shavings go on the fire. Nothing is wasted, including the afternoon.</p>
+      </div>
+    </section>
+
     <section class="reviews" id="reviews" data-view="reviewsSlot" data-nav="product" data-cursor="drag">
       <div class="reviews__grid">
         <h2 class="heading reviews__heading" data-split>People with keys love Holm.</h2>
@@ -450,7 +471,7 @@
             <p class="field__error" id="emailError" role="alert">Enter an email address, e.g. name@example.com</p>
           </form>
           <div class="edition" id="edition" role="img" aria-label="Two hundred numbers: 188 taken, 12 still here"></div>
-          <p class="edition__key legal"><span class="edition__dot"></span>Found a desk<span class="edition__dot edition__dot--open"></span>Still here</p>
+          <p class="edition__key legal"><span class="edition__dot"></span>Found a desk<span class="edition__dot edition__dot--open"></span>Still here<span class="edition__dot edition__dot--yours"></span>Yours</p>
         </div>
         <div class="reveal__object" aria-hidden="true"></div>
         <div class="reveal__right credits">
@@ -470,12 +491,25 @@
           <a href="https://oryzo.ai" rel="noopener">Reference · oryzo.ai</a>
           <a href="#top">Back to the top</a>
         </nav>
-        <p class="foot__meta">© 2026 Fabricatr · Made in Dorset · HOLM-1</p>
+        <p class="foot__meta">© 2026 Fabricatr · Made in Dorset · HOLM-1<span class="foot__keys"> · Press <kbd>?</kbd> for the keys</span></p>
       </div>
       <p class="foot__word" role="img" aria-label="HOLM"><span class="foot__l">H</span><span class="foot__o" aria-hidden="true"></span><span class="foot__l">L</span><span class="foot__l">M</span></p>
     </section>
 
   </main>
+
+  <!-- Keyboard: a small card listing the keys, toggled with ? -->
+  <div class="keys card" id="keys" role="dialog" aria-label="Keyboard" hidden>
+    <p class="keys__title">Keys</p>
+    <dl class="keys__list">
+      <div><dt><kbd>↓</kbd> <kbd>↑</kbd></dt><dd>Next, previous beat</dd></div>
+      <div><dt><kbd>D</kbd></dt><dd>Drop a coin</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>Flip it over</dd></div>
+      <div><dt><kbd>T</kbd></dt><dd>Turntable</dd></div>
+      <div><dt><kbd>S</kbd></dt><dd>Sound</dd></div>
+      <div><dt><kbd>?</kbd> <kbd>Esc</kbd></dt><dd>This card</dd></div>
+    </dl>
+  </div>
 
   <script type="module" src="./assets/js/main.js"></script>
 </body>

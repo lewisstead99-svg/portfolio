@@ -390,13 +390,26 @@ function buildTrayGeometry() {
     ao[j] = lerp(AO[a][1], AO[a + 1][1], clamp((s[j] - s0) / Math.max(1e-6, s1 - s0), 0, 1));
   }
 
-  const geo = new THREE.LatheGeometry(P, 192);
+  const SEGS = 192;
+  const geo = new THREE.LatheGeometry(P, SEGS);
   const pos = geo.attributes.position, uv = geo.attributes.uv;
   const n = pos.count;
   const uvPlanar = new Float32Array(n * 2), col = new Float32Array(n * 3);
+  // The lathe beat: every vertex also knows where it sits on the raw blank (Ø 210 × 27, same arc-length
+  // parametrisation) and when along the turning it is cut: underside, foot, chamfer and wall first, then the
+  // blank comes round and the lip, inner wall and floor are cut down to the centre.
+  const finished = new Float32Array(pos.array), blank = new Float32Array(n * 3), carve = new Float32Array(n);
+  const sTot = s[N - 1], sLip = s[marks.lipOuterStart];
+  const BR = 1.05, BH = 0.27, L1 = BR, L2 = BR + BH, L3 = 2 * BR + BH;
+  const carveAt = (sj) => sj <= sLip ? 0.04 + 0.44 * (sj / sLip) : 0.54 + 0.42 * ((sj - sLip) / (sTot - sLip));
+  const blankAt = (sj) => { const d = sj / sTot * L3; return d < L1 ? [d, 0] : d < L2 ? [BR, d - L1] : [BR - (d - L2), BH]; };
+  const carveP = Array.from({ length: N }, (_, j) => carveAt(s[j])), blankP = Array.from({ length: N }, (_, j) => blankAt(s[j]));
   for (let i = 0; i < n; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const j = Math.round(uv.getY(i) * (N - 1));
+    const j = i % N, seg = Math.floor(i / N), phi = seg / SEGS * Math.PI * 2;
+    const [br, by] = blankP[j];
+    blank[i * 3] = br * Math.sin(phi); blank[i * 3 + 1] = by; blank[i * 3 + 2] = br * Math.cos(phi);
+    carve[i] = carveP[j];
     uvPlanar[i * 2] = (x + SPAN / 2) / SPAN;
     uvPlanar[i * 2 + 1] = (z + SHEAR * y + SPAN / 2) / SPAN;
     const lip = smooth((y - 0.15) / 0.07);              // a little warmer / lighter on the lip
@@ -407,7 +420,7 @@ function buildTrayGeometry() {
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   // where the pocket floor's centre lands in planar uv (for the concentric turning marks)
   const floor = { cu: 0.5, cv: (SHEAR * FLOOR_Y + SPAN / 2) / SPAN, span: SPAN };
-  return { geo, floor };
+  return { geo, floor, morph: { finished, blank, carve, carveP, blankP, P } };
 }
 
 /* ------------------------------------------------------------------ props */
@@ -619,6 +632,90 @@ export function createScene(canvas, options = {}) {
   trayGroup.add(stampUnder);
   scene.add(trayGroup);
 
+  // ---- the lamp: a warm spot between the camera and the tray that follows the hand in the void
+  const lamp = new THREE.SpotLight('#ffe3c4', 0, 0, 38 * DEG, 0.7, 2);
+  lamp.target = key.target;
+  scene.add(lamp);
+  let lampOn = 0;
+  // Time of day: the hero photograph is lit for the visitor's hour (cooler and higher in the morning, warm and
+  // low in the evening). hourWarm 0..1, hourSwing in degrees of azimuth.
+  let hourWarm = 0.4, hourSwing = 0;
+  const _fwd = new THREE.Vector3();
+
+  // ---- the lathe: the same geometry shown part-way between the blank and the finished tray, a chisel at the cut
+  // and shavings flying off it. Everything here lives in a group that turns with the camera yaw, so the tool
+  // stays front-right of the lens while the tray spins beneath it.
+  const morph = T.morph, mPos = T.geo.attributes.position;
+  let turnT = 1, latheT = 0, morphAt = 1, latheAngle = 0, cutRate = 0, lastEff = 1, spinF = 0;
+  function applyMorph(eff) {
+    const arr = mPos.array, { finished, blank, carve } = morph;
+    for (let i = 0, n = carve.length; i < n; i++) {
+      const k = smooth((eff - carve[i] + 0.08) / 0.08), o = i * 3;
+      arr[o] = blank[o] + (finished[o] - blank[o]) * k;
+      arr[o + 1] = blank[o + 1] + (finished[o + 1] - blank[o + 1]) * k;
+      arr[o + 2] = blank[o + 2] + (finished[o + 2] - blank[o + 2]) * k;
+    }
+    mPos.needsUpdate = true; T.geo.computeVertexNormals(); T.geo.computeBoundingSphere();
+    morphAt = eff;
+  }
+  const latheGroup = new THREE.Group(); latheGroup.visible = false; scene.add(latheGroup);
+  const steelM = new THREE.MeshStandardMaterial({ color: '#b9b7b0', roughness: 0.3, metalness: 1 });
+  const chisel = new THREE.Group();
+  { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.028, 0.034), steelM); bar.position.x = 0.31; chisel.add(bar);
+    const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(0.031, 0.031, 0.05, 24).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#9a8352', roughness: 0.4, metalness: 1 })); ferrule.position.x = 0.645; chisel.add(ferrule);
+    const prof = [new THREE.Vector2(0.03, 0), new THREE.Vector2(0.05, 0.08), new THREE.Vector2(0.06, 0.2), new THREE.Vector2(0.055, 0.32), new THREE.Vector2(0.04, 0.4), new THREE.Vector2(0.001, 0.43)];
+    const handle = new THREE.Mesh(new THREE.LatheGeometry(prof, 28).rotateZ(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#5a3520', roughness: 0.55 })); handle.position.x = 0.67; chisel.add(handle); }
+  latheGroup.add(chisel);
+  const CHIPS = 140;
+  const chips = new THREE.InstancedMesh(new THREE.BoxGeometry(0.055, 0.004, 0.02), new THREE.MeshStandardMaterial({ color: '#c39a6c', roughness: 0.85 }), CHIPS);
+  chips.instanceMatrix.setUsage(THREE.DynamicDrawUsage); chips.frustumCulled = false;
+  const chip = Array.from({ length: CHIPS }, () => ({ life: 0, max: 1, p: new THREE.Vector3(), v: new THREE.Vector3(), r: new THREE.Euler(), w: new THREE.Vector3() }));
+  const _o3 = new THREE.Object3D(), _tmpC = new THREE.Color();
+  for (let i = 0; i < CHIPS; i++) { chips.setColorAt(i, _tmpC.setHSL(0.075, 0.42, 0.42 + Math.random() * 0.22)); _o3.scale.setScalar(0); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix); }
+  latheGroup.add(chips);
+  let chipAcc = 0, chipHead = 0;
+  const CUT_AZ = 40 * DEG, X_AXIS = new THREE.Vector3(1, 0, 0), _tip = new THREE.Vector3(), _hdir = new THREE.Vector3();
+  const wrapPi = (a) => ((a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  function updateLathe(dt, eff, yawRad) {
+    latheGroup.rotation.y = yawRad;
+    // the point being cut now: the profile point whose carve time is nearest the current progress
+    const { carveP, blankP, P } = morph; let jc = 0, best = 1e9;
+    for (let j = 0; j < carveP.length; j++) { const d = Math.abs(carveP[j] - eff); if (d < best) { best = d; jc = j; } }
+    const k = smooth((eff - carveP[jc] + 0.08) / 0.08);
+    const r = lerp(blankP[jc][0], P[jc].x, k) + 0.012, y = lerp(blankP[jc][1], P[jc].y, k);
+    _tip.set(r * Math.sin(CUT_AZ), y, r * Math.cos(CUT_AZ));
+    const cutting = eff < 0.995;
+    chisel.visible = cutting && !(y < 0.035 && r < 0.93);   // the underside is cut out of sight; the tool shows from the foot on
+    if (cutting) {
+      _hdir.set(0.9 * Math.sin(CUT_AZ), -0.22, 0.9 * Math.cos(CUT_AZ) + 0.55).normalize();
+      chisel.position.copy(_tip);
+      chisel.quaternion.setFromUnitVectors(X_AXIS, _hdir);
+    }
+    // shavings: a trickle while it spins, a spray while the cut advances
+    const rate = cutting ? 8 + 110 * clamp(cutRate / 0.6, 0, 1) : 0;
+    chipAcc += rate * dt;
+    while (chipAcc >= 1) {
+      chipAcc -= 1;
+      const c = chip[chipHead]; chipHead = (chipHead + 1) % CHIPS;
+      c.life = c.max = 0.6 + Math.random() * 0.6;
+      c.p.copy(_tip).addScalar(0).add(new THREE.Vector3((Math.random() - 0.5) * 0.04, (Math.random()) * 0.03, (Math.random() - 0.5) * 0.04));
+      const sp = 1.2 + Math.random() * 1.4;
+      c.v.set(Math.cos(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6, 0.9 + Math.random() * 1.1, -Math.sin(CUT_AZ) * sp + (Math.random() - 0.5) * 0.6 + 0.4);
+      c.r.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+      c.w.set((Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24);
+    }
+    for (let i = 0; i < CHIPS; i++) {
+      const c = chip[i];
+      if (c.life <= 0) continue;
+      c.life -= dt;
+      c.v.y -= 6.5 * dt; c.p.addScaledVector(c.v, dt);
+      c.r.x += c.w.x * dt; c.r.y += c.w.y * dt; c.r.z += c.w.z * dt;
+      const f = clamp(c.life / c.max, 0, 1), sc = c.life > 0 ? smooth(f / 0.35) : 0;
+      _o3.position.copy(c.p); _o3.rotation.copy(c.r); _o3.scale.setScalar(sc); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix);
+    }
+    chips.instanceMatrix.needsUpdate = true;
+  }
+
   // ---- the hero set: mat, contact shadow, tools (only these fade + sink during LIFT)
   const matGroup = new THREE.Group();
   // The plane is far larger than any frame ever shows (the hero frames ≈ 5.3 × 3.3 units on desktop, the
@@ -740,8 +837,8 @@ export function createScene(canvas, options = {}) {
     const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.185, 0.014, 12, 64), nickel); bezel.rotation.x = Math.PI / 2; bezel.position.y = 0.03; g.add(bezel);
     const face = new THREE.Mesh(new THREE.CircleGeometry(0.17, 64), darkP); face.rotation.x = -Math.PI / 2; face.position.y = 0.031; g.add(face);
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const idx = new THREE.Mesh(new THREE.BoxGeometry(i % 3 === 0 ? 0.022 : 0.012, 0.002, 0.006), nickel); idx.position.set(Math.cos(a) * 0.145, 0.033, Math.sin(a) * 0.145); idx.rotation.y = -a; g.add(idx); }
-    const hand = (len, w, rot) => { const h = new THREE.Mesh(new THREE.BoxGeometry(len, 0.003, w), nickel); h.position.set(Math.cos(rot) * len / 2, 0.035, -Math.sin(rot) * len / 2); h.rotation.y = rot; g.add(h); };
-    hand(0.11, 0.012, 1.2); hand(0.15, 0.008, -0.6);
+    const hand = (len, w, rot) => { const h = new THREE.Mesh(new THREE.BoxGeometry(len, 0.003, w), nickel); h.position.set(Math.cos(rot) * len / 2, 0.035, -Math.sin(rot) * len / 2); h.rotation.y = rot; g.add(h); return h; };
+    g.userData.hands = { h: hand(0.11, 0.012, 1.2), m: hand(0.15, 0.008, -0.6) };   // set to the visitor's clock every frame the watch is out
     const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.03, 16), nickel); crown.rotation.z = Math.PI / 2; crown.position.set(0.215, 0, 0); g.add(crown);
     for (const side of [1, -1]) { const strap = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.016, 0.30), leatherP); strap.position.set(0, -0.012, side * 0.34); strap.rotation.x = side * 0.18; g.add(strap); }
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
@@ -820,6 +917,7 @@ export function createScene(canvas, options = {}) {
     reviewsSlot: { elev: 35, dynamic: true },   // the top row of the reviews, between heading and body
     letterO:{ elev: 89.5, dynamic: true },
     footO:  { elev: 89.5, dynamic: true },
+    lathe:  { elev: 28, width: 0.50, nx: 0, ny: -0.08, pwidth: 0.85, pnx: 0, pny: -0.22, lathe: true },   // the turning beat: the blank becomes the tray with the scroll
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
     // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
@@ -909,15 +1007,15 @@ export function createScene(canvas, options = {}) {
 
     // light rig, relative to the camera yaw
     const lift = v.vd;
-    sph(key.position, yaw + lerp(135, 55, lift) * DEG, lerp(lerp(52, 46, lift), -42, below) * DEG, 6);
-    sph(spot.position, yaw + 135 * DEG, 58 * DEG, 7.5);
+    sph(key.position, yaw + (lerp(135, 55, lift) + hourSwing * (1 - lift)) * DEG, lerp(lerp(52 - 14 * hourWarm, 46, lift), -42, below) * DEG, 6);
+    sph(spot.position, yaw + (135 + hourSwing) * DEG, (58 - 16 * hourWarm) * DEG, 7.5);
     sph(rim.position, yaw + 135 * DEG, lerp(24, -18, below) * DEG, 6);
     sph(front.position, yaw - 40 * DEG, 42 * DEG, 6);
     sph(bounce.position, yaw - 35 * DEG, -10 * DEG, 6);
     key.intensity = lerp(0.75, 3.0, lift);                    // the spot carries the hero; the key carries the void
     spot.intensity = 150 * (1 - lift);
     rim.intensity = lerp(1.2, 2.0, lift);
-    front.intensity = lerp(0.25, 0.9, lift);
+    front.intensity = lerp(0.25, 0.9, lift) * (1 - 0.35 * lampOn * lift);
     bounce.intensity = 0.6 * lift;
     hemi.intensity = lerp(0.15, 0.65, lift);
   }
@@ -997,7 +1095,31 @@ export function createScene(canvas, options = {}) {
         if (rr > lim) { m.position.x *= lim / rr; m.position.z *= lim / rr; c.vx = -c.vx * 0.4; c.vz = -c.vz * 0.4; }
       }
     }
+    // The lathe: the morph follows the beat's scroll progress while the beat is on, and eases back to the finished
+    // tray when it is left; the tray spins while there is still wood to take off.
+    const oL = oNow && oNow.lathe ? 1 : 0;
+    latheT += (oL - latheT) * (snap ? 1 : Math.min(1, a * 1.2));
+    if (latheT < 0.001 && !oL) latheT = 0;
+    const eff = 1 - latheT * (1 - turnT);
+    cutRate += ((dt > 0 ? Math.abs(eff - lastEff) / dt : 0) - cutRate) * (snap ? 1 : Math.min(1, dt * 8)); lastEff = eff;
+    if (Math.abs(eff - morphAt) > 0.0004 || (eff >= 1 && morphAt < 1)) applyMorph(Math.min(eff, 1.001));
+    spinF = latheT * (1 - smooth((turnT - 0.9) / 0.1));
+    if (!isStatic && !reduced) latheAngle = (latheAngle + 7.5 * spinF * dt) % (Math.PI * 2);
+    trayGroup.rotation.y = latheT * wrapPi(latheAngle);
+    latheGroup.visible = latheT > 0.01;
+    if (latheGroup.visible) updateLathe(dt, eff, view.yaw * DEG);
+    // The watch keeps the visitor's time.
+    if (coinGroup.visible && watchProp.visible) {
+      const d = new Date(), hh = watchProp.userData.hands;
+      const th = ((d.getHours() % 12) + d.getMinutes() / 60) / 12 * Math.PI * 2, tm = (d.getMinutes() + d.getSeconds() / 60) / 60 * Math.PI * 2;
+      const set = (h, len, rot) => { h.position.set(Math.cos(rot) * len / 2, 0.035, -Math.sin(rot) * len / 2); h.rotation.y = rot; };
+      set(hh.h, 0.11, Math.PI / 2 - th); set(hh.m, 0.15, Math.PI / 2 - tm);
+    }
     applyCamera(view);
+    // The lamp sits between the lens and the tray, offset toward the hand, and only lights the void.
+    _fwd.setFromMatrixColumn(camera.matrixWorld, 2);
+    lamp.position.copy(target).addScaledVector(_fwd, 2.2).addScaledVector(_right, pointerCur.x * 2.6).addScaledVector(_up, -pointerCur.y * 2.0 + 1.2);
+    lamp.intensity = 30 * vd * (1 - sw) * lampOn;
     applySet(vd);
     const o = override && PRESETS[override];
     // FEATURES props: ease in and out with the beat.
@@ -1029,7 +1151,8 @@ export function createScene(canvas, options = {}) {
     wood.color.setRGB(lerp(1, 0.56, ageT), lerp(1, 0.50, ageT), lerp(1, 0.46, ageT));
     // The whole scene grades with the ageing: a touch under-exposed and warmer, like an evening ten years on.
     renderer.toneMappingExposure = lerp(1.08, 0.86, ageT);
-    key.color.setRGB(1.0, lerp(0.843, 0.72, ageT), lerp(0.682, 0.47, ageT));
+    const hg = lerp(lerp(0.90, 0.74, hourWarm), 0.843, vd), hb = lerp(lerp(0.80, 0.52, hourWarm), 0.682, vd);   // the hour tints the photograph, not the void
+    key.color.setRGB(1.0, lerp(hg, 0.72, ageT), lerp(hb, 0.47, ageT));
     key.castShadow = matGroup.visible || ground.visible || coinGroup.visible;
     key.shadow.intensity = Math.max(1 - vd, groundT, coinT);
   }
@@ -1091,7 +1214,7 @@ export function createScene(canvas, options = {}) {
 
   const api = {
     setProgress(p) { progress = clamp(Number(p) || 0, 0, 1); requestRender(); },
-    setPointer(nx, ny) { pointer.x = clamp(Number(nx) || 0, -1, 1); pointer.y = clamp(Number(ny) || 0, -1, 1); requestRender(); },
+    setPointer(nx, ny) { pointer.x = clamp(Number(nx) || 0, -1, 1); pointer.y = clamp(Number(ny) || 0, -1, 1); lampOn = 1; requestRender(); },
     // A named view, held (pills). animate = ease from the current target instead of cutting.
     setViewOverride(name, animate = true) {
       const n = (name && PRESETS[name]) ? name : null;
@@ -1131,6 +1254,24 @@ export function createScene(canvas, options = {}) {
       return { triangles: Math.round(tris), wireSegments: wire.geometry.getAttribute('position').count / 2, canvases, drawCalls: renderer.info.render.calls, lights: [key, spot, rim, front, bounce, hemi].length };
     },
     onLand: null,                                                // (impact 0..1, 'coin' | 'prop') when something meets the pocket
+    setTurn(t) { turnT = clamp(Number(t) || 0, 0, 1); requestRender(); },
+    getTurn() { return { t: turnT, active: latheT, eff: morphAt, cutting: clamp(cutRate / 0.6, 0, 1), spin: spinF }; },
+    setHour(h) {
+      h = ((Number(h) || 0) % 24 + 24) % 24;
+      hourWarm = h < 6 || h >= 21 ? 1 : h < 10 ? lerp(0.85, 0.15, (h - 6) / 4) : h < 16 ? lerp(0.15, 0.45, (h - 10) / 6) : lerp(0.45, 1, (h - 16) / 5);
+      hourSwing = clamp((h - 13) * 6, -40, 40);
+      spot.color.setRGB(1, lerp(0.92, 0.76, hourWarm), lerp(0.84, 0.56, hourWarm));
+      requestRender();
+    },
+    setNumber(n) {
+      const num = `Nº ${String(n).padStart(3, '0')}`, year = String(new Date().getFullYear());
+      const swap = (mesh, lines) => { const old = mesh.material.map; mesh.material.map = tex(makeStampCanvas(512, lines)); mesh.material.needsUpdate = true; if (old) old.dispose(); };
+      swap(stampFloor, [{ text: 'HOLM', size: 0.19, y: -0.07, spacing: 0.06 }, { text: num, size: 0.13, y: 0.14 }]);
+      swap(stampUnder, [{ text: 'HOLM', size: 0.17, y: -0.16, spacing: 0.07 }, { text: 'HAND TURNED', size: 0.07, y: 0.0, spacing: 0.02 },
+        { text: 'BLACK WALNUT', size: 0.07, y: 0.10, spacing: 0.02 }, { text: `${num} · ${year}`, size: 0.08, y: 0.22 }]);
+      requestRender();
+    },
+    snapshot() { renderNow(); return { url: canvas.toDataURL('image/png'), scale: renderer.getPixelRatio(), x: bounds.x, y: bounds.y, r: bounds.r }; },
     onFrame: null,                                               // called at the top of every rendered frame
     afterFrame: null,                                            // called after every rendered frame, bounds fresh
     isRunning() { return running; },

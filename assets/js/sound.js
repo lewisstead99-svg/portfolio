@@ -75,10 +75,36 @@ export function createSound() {
     src.connect(bp); bp.connect(g); g.connect(master); src.start(t); src.stop(t + 0.75);
     setTimeout(() => knock(0.7), 620);
   }
+  // The lathe: a motor hum that rises with the spin and a filtered-noise cut that follows the carving rate.
+  // Both are continuous, so their gains ramp instead of restarting.
+  let lathe = null;
+  function latheSound(level = 0, cutting = 0) {
+    if (!enabled || !ctx) return;
+    const t = ctx.currentTime;
+    if (!lathe) {
+      const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 42;
+      const osc2 = ctx.createOscillator(); osc2.type = 'triangle'; osc2.frequency.value = 84.5;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380; lp.Q.value = 0.7;
+      const g = ctx.createGain(); g.gain.value = 0;
+      osc.connect(lp); osc2.connect(lp); lp.connect(g); g.connect(master); osc.start(); osc2.start();
+      const n = Math.floor(ctx.sampleRate * 1.5), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource(); src.buffer = b; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.9;
+      const gc = ctx.createGain(); gc.gain.value = 0;
+      src.connect(bp); bp.connect(gc); gc.connect(master); src.start();
+      lathe = { osc, osc2, g, gc, bp };
+    }
+    const lv = Math.min(1, Math.max(0, level)), cv = Math.min(1, Math.max(0, cutting)) * lv;
+    lathe.g.gain.setTargetAtTime(0.055 * lv, t, 0.12);
+    lathe.osc.frequency.setTargetAtTime(30 + 26 * lv, t, 0.25); lathe.osc2.frequency.setTargetAtTime(60 + 52 * lv, t, 0.25);
+    lathe.gc.gain.setTargetAtTime(0.11 * cv, t, 0.06);
+    lathe.bp.frequency.setTargetAtTime(900 + 900 * cv, t, 0.08);
+  }
   function setEnabled(on) {
     enabled = !!on;
     if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); tick(0.8); }
     else if (ctx && ctx.state === 'running') ctx.suspend();
   }
-  return { knock, coin, tick, whoosh, setEnabled, get enabled() { return enabled; } };
+  return { knock, coin, tick, whoosh, lathe: latheSound, setEnabled, get enabled() { return enabled; } };
 }

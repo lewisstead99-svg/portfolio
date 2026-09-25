@@ -22,11 +22,12 @@ The page follows the beat structure of the reference site, section for section, 
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
 | 07 | Macro | The camera drops to grain level across the rim; a friction-coefficient card. |
 | 08 | Longevity | The light interlude: a cream ground the scene paints behind the tray, which becomes the o of "longevity". Below, a three-panel strip: sixty growth rings drawn one per year, the making in order on three orbits, and a number that fills its panel. |
+| 08b | Turning | A tall pinned beat: the scroll carves a Ø 210 × 30 blank into the tray while it spins, the same lathe geometry morphing between the two profiles, a chisel at the cut and shavings flying off it. Readouts follow the cut. |
 | 09 | Reviews | One large tray in the centre column, heading and body above it, three quote cards with ember highlights and a 4.9 / 5 summary around it. |
 | 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
 | 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
-| 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, the single filled pill, colophon. |
+| 12 | Contact | Underline-only email field, the edition as a dot matrix (188 taken, the twelve still here in ember), ember "Built by" credit, the single filled pill, colophon. Leave an address and one of the twelve becomes yours: the number is stamped onto the tray that second, the tray turns over to show it, the count drops to eleven, your dot is ringed, and a card with the frame can be saved. |
 | 13 | Foot | A link row over the wordmark at full width, and the tray flies back into its O to close the loop. |
 
 - **Scroll-linked flights.** Every hand-over between beats is a blend driven by scroll position, not a
@@ -66,7 +67,14 @@ The page follows the beat structure of the reference site, section for section, 
   when something lands in the pocket, a metallic ring for coins, a whoosh for the flip, a tick for controls
   and chapter changes. Nothing is downloaded; every sound is synthesised on the spot. Off by default,
   remembered per browser, resumed only after a gesture.
-- **It knows where you are.** The loader counts to a hundred while the first frame compiles, and the
+- **The light follows the hand.** In the void a warm lamp sits between the lens and the tray and moves with
+  the pointer, so highlights and the grain shift as you move. The hero photograph is lit for the visitor's
+  own hour: cooler and higher in the morning, warm and low in the evening, with a caption saying so. The
+  watch on the hall table keeps the visitor's time.
+- **It can be driven from the keyboard.** Arrows step between beats, D drops a coin, F flips, T runs the
+  turntable, S toggles sound, ? shows the card. Left alone for a while it nudges itself once: a coin, a
+  flip or a quarter turn.
+- **It knows where you are.** The loader draws the section profile and counts to a hundred while the first frame compiles, and the
   vertical serial on the right carries a chapter counter (05 / 15) that follows the beats.
 - **Degrades honestly.** Without WebGL the page shows static plates rendered from the same scene. Reduced
   motion is respected (no idle drift, no easing lag, no spin, no typing).

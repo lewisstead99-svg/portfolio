@@ -87,6 +87,23 @@ function layoutGallery() {
   }
 }
 
+// The turning beat: its scroll fraction is the carving progress; the readouts follow.
+const turningEl = document.getElementById('turning');
+const turnPct = document.getElementById('turnPct'), turnDia = document.getElementById('turnDia'), turnH = document.getElementById('turnH'), turnRpm = document.getElementById('turnRpm');
+let turnShown = -1;
+function trackTurning() {
+  if (!turningEl) return;
+  const r = turningEl.getBoundingClientRect();
+  const t = clamp(-r.top / Math.max(1, turningEl.offsetHeight - innerHeight), 0, 1);
+  scene?.setTurn(t);
+  const pct = Math.round(31 * t);
+  if (pct !== turnShown) {
+    turnShown = pct;
+    if (turnPct) turnPct.textContent = `${pct}%`;
+    if (turnDia) turnDia.textContent = `Ø ${Math.round(210 - 10 * t)}`;
+    if (turnH) turnH.textContent = String(Math.round(30 - 8 * t));
+  }
+}
 let lastScrollY = scrollY;
 function onScroll() {
   target = progressFor(scrollY);
@@ -101,6 +118,7 @@ function onScroll() {
     thumb.style.transform = `translateY(${(scrollY / total) * innerHeight}px)`;
   }
   layoutGallery();
+  trackTurning();
   trackSections();
   // No second easing stage: the wheel is eased already and touch is smooth by itself, so the camera reads the
   // scroll position of this very frame and the tray never trails the words around it.
@@ -196,6 +214,14 @@ if (scene) requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(re
 else ready();
 setTimeout(ready, 3500);
 
+// --- The hour: the photograph is lit for the visitor's own time of day ---------------------------------
+{
+  const d = new Date();
+  scene?.setHour(d.getHours() + d.getMinutes() / 60);
+  const heroTime = document.getElementById('heroTime');
+  if (heroTime) heroTime.textContent = `Lit for ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}, your time`;
+}
+
 // --- Pointer parallax (desktop only) -----------------------------------------------------------------
 if (scene && !reducedMotion && matchMedia('(pointer: fine)').matches) {
   addEventListener('pointermove', e => scene.setPointer((e.clientX / innerWidth) * 2 - 1, (e.clientY / innerHeight) * 2 - 1), { passive: true });
@@ -203,7 +229,7 @@ if (scene && !reducedMotion && matchMedia('(pointer: fine)').matches) {
 
 // --- Section reveals + light theme flag ---------------------------------------------------------------
 {
-  const els = document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot');
+  const els = document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot, .turning');
   const io = new IntersectionObserver(entries => entries.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }), { threshold: 0.2 });
@@ -311,7 +337,7 @@ flipButton?.addEventListener('click', () => {
 // line (half the viewport by default), the camera blends from the previous view to the next over half a
 // viewport of scroll, so the tray travels with the page instead of hopping when a threshold is crossed.
 // Read from geometry on every scroll: IntersectionObserver root margins are ignored in cross-origin iframes.
-const revealEls = [...document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot')];
+const revealEls = [...document.querySelectorAll('.reveal, .pin, .divider, .statement, .beat, .letters, .light, .reviews, .always, .gallery, .foot, .turning')];
 const beats = [];
 document.querySelectorAll('main > section').forEach(sec => {
   if (sec.id === 'features') { markers.forEach((m, i) => beats.push({ el: i === 0 ? sec : m, view: () => m.dataset.view || null, own: i === 0 ? 0.55 : 0.5 })); return; }   // the first beat is owned by the section itself, so the blend begins as the panel scrolls in
@@ -445,7 +471,16 @@ function follow() {
 }
 // Followers run after each rendered frame, so they read this frame's bounds, not last frame's.
 const kickFollow = () => { followWanted = true; if (!scene?.isRunning()) requestAnimationFrame(() => { if (followWanted) follow(); }); };
-if (scene) scene.afterFrame = () => { if (followWanted) follow(); };
+let rpmShown = -1;
+if (scene) scene.afterFrame = () => {
+  if (followWanted) follow();
+  const tu = scene.getTurn();
+  if (tu.active > 0.01 || rpmShown > 0) {
+    sound.lathe(tu.active * (tu.eff < 0.995 ? 1 : 0.25), tu.cutting);
+    const rpm = Math.round(640 * tu.spin / 20) * 20;
+    if (rpm !== rpmShown && turnRpm) { rpmShown = rpm; turnRpm.firstChild.textContent = `${rpm} `; }
+  }
+};
 addEventListener('scroll', kickFollow, { passive: true });
 addEventListener('pointermove', kickFollow, { passive: true });
 setTimeout(kickFollow, 1200);
@@ -652,8 +687,94 @@ form?.addEventListener('submit', e => {
   if (!ok) { input.setAttribute('aria-invalid', 'true'); form.classList.add('is-invalid'); input.focus(); return; }
   input.removeAttribute('aria-invalid'); form.classList.remove('is-invalid');
   form.classList.add('is-done');
-  const doneEl = form.querySelector('.field__done'); doneEl.textContent = 'Noted. Your number is held.'; doneEl.tabIndex = -1; doneEl.focus();
+  const doneEl = form.querySelector('.field__done'); doneEl.tabIndex = -1;
+  // Your number: one of the twelve, stamped onto the tray this second, and the tray turns over to show it.
+  const n = 189 + Math.floor(Math.random() * 12), num = `Nº ${String(n).padStart(3, '0')}`;
+  scene?.setNumber(n);
+  html.classList.add('has-number');
+  const contact = document.getElementById('contact');
+  resplit(contact.querySelector('.heading'), 'Eleven numbers left.');
+  const body = contact.querySelector('.body'); if (body) body.textContent = `Two hundred were made. A hundred and eighty-nine have found a desk. ${num} is yours: it is on the underside, in ink, by hand.`;
+  const dot = edition?.children[n - 1]; if (dot) { dot.classList.remove('is-open'); dot.classList.add('is-yours'); dot.title = `${num} · yours`; }
+  contact.dataset.view = 'flip'; contact.dataset.viewPortrait = 'flip'; animateNext = true; trackSections();
+  doneEl.textContent = `${num} is yours.`;
+  if (scene) {
+    const save = document.createElement('button'); save.type = 'button'; save.className = 'btn btn--ghost btn--tiny'; save.textContent = 'Save the card';
+    save.addEventListener('click', () => saveCard(n));
+    doneEl.appendChild(save);
+  }
+  doneEl.focus();
+  sound.tick(0.8);
 });
+// Re-split a word-revealed heading with new words; the section already has .in, so they rise in straight away.
+function resplit(el, text) {
+  if (!el) return;
+  el.textContent = '';
+  text.split(/\s+/).forEach((w, i, arr) => {
+    const outer = document.createElement('span'); outer.className = 'w'; outer.style.setProperty('--i', i);
+    const inner = document.createElement('span'); inner.textContent = w; outer.appendChild(inner); el.appendChild(outer);
+    if (i < arr.length - 1) el.appendChild(document.createTextNode(' '));
+  });
+}
+// The card: a frame of the tray as it is right now, with the number, composed on a 1200 × 630 canvas and saved.
+function saveCard(n) {
+  const snap = scene.snapshot();
+  const img = new Image();
+  img.onload = () => {
+    const W = 1200, H = 630, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#100904'; ctx.fillRect(0, 0, W, H);
+    const s = snap.scale, size = snap.r * 2 * 1.25 * s, out = 540;
+    ctx.drawImage(img, snap.x * s - size / 2, snap.y * s - size / 2, size, size, W - out - 60, (H - out) / 2, out, out);
+    ctx.fillStyle = '#ffedd7'; ctx.textBaseline = 'top';
+    ctx.font = '500 20px Inter, Arial, sans-serif'; ctx.fillText('HOLM', 72, 84);
+    ctx.font = '500 96px Inter, Arial, sans-serif'; ctx.fillText(`Nº ${String(n).padStart(3, '0')}`, 68, 220);
+    ctx.font = '500 16px Inter, Arial, sans-serif'; ctx.fillText('HELD FOR YOU · ONE OF TWO HUNDRED', 72, 340);
+    ctx.fillStyle = '#6c5f51'; ctx.fillText('HAND TURNED · BLACK WALNUT · MADE IN DORSET', 72, 372);
+    ctx.fillStyle = '#dc5000'; ctx.fillText('BUILT BY FABRICATR · FABRICATR.COM', 72, 520);
+    const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `holm-no-${String(n).padStart(3, '0')}.png`; document.body.appendChild(a); a.click(); a.remove();
+    sound.tick(0.6);
+  };
+  img.src = snap.url;
+}
+
+// --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
+const keysCard = document.getElementById('keys');
+const showKeys = (on) => { if (keysCard) keysCard.hidden = !on; };
+function gotoBeat(dir) {
+  const i = Math.max(0, mainSections.indexOf(sectionEl)), next = mainSections[clamp(i + dir, 0, mainSections.length - 1)];
+  if (!next) return;
+  cancelWheel();
+  window.scrollTo({ top: next.offsetTop, behavior: reducedMotion ? 'instant' : 'smooth' });
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  const k = e.key;
+  if (k === '?') { showKeys(keysCard?.hidden); sound.tick(0.5); return; }
+  if (k === 'Escape') { showKeys(false); return; }
+  if (k === 'ArrowDown' || k === 'j' || k === 'PageDown') { e.preventDefault(); gotoBeat(1); }
+  else if (k === 'ArrowUp' || k === 'k' || k === 'PageUp') { e.preventDefault(); gotoBeat(-1); }
+  else if (k === 'd' || k === 'D') { if (featuresActive && currentStep === '1') dropButton?.click(); else { cancelWheel(); markers[0]?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'center' }); } }
+  else if (k === 'f' || k === 'F') { if (sectionEl?.id === 'flip') flipButton?.click(); else { cancelWheel(); document.getElementById('flip')?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' }); } }
+  else if (k === 's' || k === 'S') soundButton?.click();
+  else if (k === 't' || k === 'T') { if (scrollY > innerHeight * 0.5) { cancelWheel(); window.scrollTo({ top: 0, behavior: reducedMotion ? 'instant' : 'smooth' }); } spinButton?.click(); }
+  else return;
+  showKeys(false);
+});
+
+// --- Idle: left alone for a while, the page nudges itself once (a coin, a flip, a quarter turn) --------------
+if (scene && !reducedMotion) {
+  let idleAt = performance.now();
+  const bump = () => { idleAt = performance.now(); };
+  for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll']) addEventListener(ev, bump, { passive: true });
+  setInterval(() => {
+    if (document.hidden || !html.classList.contains('is-ready') || performance.now() - idleAt < 14000) return;
+    idleAt = performance.now() - 6000;                          // the next nudge, if still idle, eight seconds on
+    if (featuresActive && currentStep === '1') scene.dropCoin();
+    else if (sectionEl?.id === 'flip') flipButton?.click();
+    else scene.kick(35 * (Math.random() < 0.5 ? 1 : -1));
+  }, 1000);
+}
 
 // The edition: two hundred dots, the last twelve open.
 const edition = document.getElementById('edition');
