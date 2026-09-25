@@ -23,7 +23,7 @@ try {
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   await page.evaluate(id => document.getElementById(id).scrollIntoView({ block: 'center', behavior: 'instant' }), id);
-  await page.waitForTimeout(1800);
+  await page.waitForTimeout(4500);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   const file = path.join(repoRoot, out, `${id}-${width}x${height}.png`);
   await page.screenshot({ path: file, timeout: 180000 });

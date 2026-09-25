@@ -16,14 +16,15 @@ The page follows the beat structure of the reference site, section for section, 
 | 00 | Hero | Top-down "photograph": the tray on a cutting mat with pencils, craft knife, brass ruler and paperclip. Wordmark upper-left, copy over the photo, info card, turntable card, scroll cue, right-edge progress bar. |
 | 01 | Intro | The mat falls away, scattered letters drift past, the tray tumbles through the void and rests at 3/4 between heading and body. |
 | 02 | Statement | "Made by hand." types itself in, ember model tag, top-down tray with dashed callouts, view pills. |
-| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of six plates slides through. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
-| 04 | Features | Pinned split: frosted panel with icon, label, copy and heading; the tray re-angles for each beat (lip, underside, top) with a dimension, a gauge and a serif formula. |
+| 03 | Gallery | A giant "it's furniture." rolls across the screen behind a window, then a carousel of seven plates slides through, one of them a looping turntable video rendered from the scene. The live tray sits on the printed one, rides the photograph as the plates slide, and holds at the left edge with a sliver showing until the next beat calls it. |
+| 04 | Features | Pinned split: frosted panel with icon, label, copy and heading that scramble into place. Each beat changes the world: a hall table with keys, a watch and coins landing in the pocket (click to drop more); back on the cutting mat under orange measuring handles; then the whole scene grades deeper as the walnut ages, with a gauge marker following. |
 | 05 | Letters | HOLM at full width. The tray flies into the O and becomes it, under the drawn circle and its ember control points. |
 | 06 | Flip | "Numbered by hand." with a pill that turns the tray over to its maker's stamp. |
 | 07 | Macro | The camera drops to grain level across the rim; a friction-coefficient card. |
 | 08 | Longevity | The light interlude: a cream ground the scene paints behind the tray, a giant word, a three-panel strip. |
 | 09 | Reviews | Rating header, three quotes with ember highlights, two plate tiles. |
-| 10 | Always on | The live tray inside a cream tile, a plate tile beside it, and a display line. |
+| 10 | Always on | The live tray inside a cream tile, a plate tile beside it, a display line under a procedural night sky. |
+| 10b | Made of code | The wood thins to a wireframe of the same lathe. The numbers beside it (triangles, textures drawn, draw calls) are read from the running scene. |
 | 11 | Drawing | Specs, a small catalogue plate, and a dimensioned technical drawing with a hatched section. |
 | 12 | Contact | Underline-only email field, ember "Built by" credit, the single filled pill, colophon. |
 
@@ -46,6 +47,8 @@ The page follows the beat structure of the reference site, section for section, 
   the render itself. Dividers are 1px dashed hairlines.
 - **It glides.** Mouse-wheel scrolling is eased towards its target (native positions, no transform hijack),
   so the choreography receives a continuous input. Keyboard, scrollbar and touch stay native.
+- **It tells you what to try.** A hand icon and a word appear under the tray the first time each interaction is
+  available ("Try to drag", "Try to click"), and stop once you have.
 - **It answers the hand.** A cream ring cursor names what the tray will do (Drag, Drop, Flip). Drag the tray
   to turn it, with inertia; a fast scroll gives it a spin that settles. In the features beat you drop coins
   into the pocket by clicking it; in the provenance beat you flip it over; in the macro beat the pointer pans
@@ -67,7 +70,8 @@ Plain HTML, CSS and ES modules. No build step, no framework, no external request
 | Three.js r170 (vendored, MIT) | `assets/js/vendor/` |
 | Inter variable font (vendored, OFL) — stand-in for Halyard Display | `assets/fonts/` |
 | Screenshot harness (headless Chromium) | `tools/screenshot.mjs` |
-| Plate renderers (fallbacks, social card, gallery plates) | `tools/plates.mjs`, `tools/gallery-plates.mjs`, `tools/plate.html` |
+| Plate renderers (fallbacks, social card, gallery plates, turntable video) | `tools/plates.mjs`, `tools/gallery-plates.mjs`, `tools/turntable.mjs`, `tools/plate.html` |
+| Section screenshot | `tools/section-shot.mjs` |
 
 ## Run it
 

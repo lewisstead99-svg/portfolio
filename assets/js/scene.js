@@ -259,6 +259,20 @@ function makeMatAlphaCanvas(size, matUnits, r0, r1) {
   return c;
 }
 
+// Plaster wall for the hall-table beat: warm mottle, a soft fall-off towards the skirting.
+function makePlasterCanvas(size) {
+  const [c, ctx] = makeCanvas(size, size, true);
+  const R = rng(77);
+  ctx.fillStyle = '#c9b396'; ctx.fillRect(0, 0, size, size);
+  const img = ctx.getImageData(0, 0, size, size), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (R() - 0.5) * 14; d[i] += n; d[i + 1] += n; d[i + 2] += n * 0.9; }
+  ctx.putImageData(img, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, 'rgba(255,240,220,0.10)'); g.addColorStop(0.55, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(40,20,8,0.28)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  return c;
+}
+
 // Soft radial contact shadow under the tray (supplements the shadow map).
 function makeBlobCanvas(size) {
   const [c, ctx] = makeCanvas(size, size);
@@ -580,9 +594,14 @@ export function createScene(canvas, options = {}) {
     clearcoat: 0.04, clearcoatRoughness: 0.65, envMapIntensity: 0.55,
     sheen: 0.1, sheenRoughness: 0.85, sheenColor: new THREE.Color('#6a4d38'),
   });
+  // "Made of code": a wireframe of the very same lathe, faded in over the wood for the closing beat.
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(T.geo), new THREE.LineBasicMaterial({ color: 0xffedd7, transparent: true, opacity: 0, depthWrite: false }));
+  wire.visible = false; wire.renderOrder = 3;
+  let codeT = 0, codeTarget = 0, extraYaw = 0;
   const tray = new THREE.Mesh(T.geo, wood);
   tray.castShadow = true;
   trayGroup.add(tray);
+  trayGroup.add(wire);
   // maker's stamps: one in the pocket floor (visible in HERO / DETAIL), one in the underside recess.
   const stampMat = (canvas) => new THREE.MeshStandardMaterial({ map: tex(canvas), transparent: true, roughness: 0.75, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1 });
   const stampFloor = new THREE.Mesh(new THREE.CircleGeometry(0.095, 48), stampMat(makeStampCanvas(512, [
@@ -687,6 +706,47 @@ export function createScene(canvas, options = {}) {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(DESK, DESK), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.034; ground.receiveShadow = true; ground.visible = false;
   scene.add(ground);
+  // A wall behind the tray for the hall-table beat. It rides a group that turns with the camera yaw so it is always
+  // opposite the lens; plaster from a canvas (warm mottle, darker towards the skirting).
+  const wallGroup = new THREE.Group(); scene.add(wallGroup);
+  const wallMat = new THREE.MeshStandardMaterial({ map: tex(makePlasterCanvas(1024)), color: new THREE.Color().setRGB(1.0, 0.93, 0.82), roughness: 0.95, metalness: 0, transparent: true, opacity: 0, fog: false });
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(16, 7), wallMat);
+  wall.position.set(0, 3.2, -3.4); wall.visible = false; wall.receiveShadow = true;
+  wallGroup.add(wall);
+  const skirt = new THREE.Mesh(new THREE.BoxGeometry(16, 0.28, 0.06), new THREE.MeshStandardMaterial({ color: '#e7dbc6', roughness: 0.6, metalness: 0, transparent: true, opacity: 0, fog: false }));
+  skirt.position.set(0, 0.10, -3.38); skirt.visible = false; wallGroup.add(skirt);
+  // Keys and a watch: they drop into the pocket when the beat arrives (materials fade with the beat like the coins).
+  const darkP = new THREE.MeshStandardMaterial({ color: '#17120e', roughness: 0.35, metalness: 0.1, transparent: true, opacity: 0 });
+  const leatherP = new THREE.MeshStandardMaterial({ color: '#3a2418', roughness: 0.8, metalness: 0, transparent: true, opacity: 0 });
+  function makeKeys() {
+    const g = new THREE.Group();
+    const ringM = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.006, 10, 40), nickel); ringM.rotation.x = Math.PI / 2; g.add(ringM);
+    for (const [ang, len] of [[0.35, 0.19], [-0.55, 0.16]]) {
+      const k = new THREE.Group();
+      const bow = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.011, 10, 32), brassP); bow.rotation.x = Math.PI / 2; bow.position.x = 0.05; k.add(bow);
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(len, 0.009, 0.022), brassP); shaft.position.x = 0.05 + 0.036 + len / 2; k.add(shaft);
+      for (const [dx, h] of [[len * 0.55, 0.018], [len * 0.72, 0.012], [len * 0.88, 0.02]]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.009, h), brassP); t.position.set(0.086 + dx, 0, 0.011 + h / 2); k.add(t); }
+      k.rotation.y = ang; g.add(k);
+    }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+  function makeWatch() {
+    const g = new THREE.Group();
+    const caseM = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.03, 48), nickel); g.add(caseM);
+    const face = new THREE.Mesh(new THREE.CircleGeometry(0.088, 48), darkP); face.rotation.x = -Math.PI / 2; face.position.y = 0.0155; g.add(face);
+    const hand = (len, w, rot) => { const h = new THREE.Mesh(new THREE.BoxGeometry(len, 0.002, w), nickel); h.position.set(Math.cos(rot) * len / 2, 0.017, -Math.sin(rot) * len / 2); h.rotation.y = rot; g.add(h); };
+    hand(0.06, 0.006, 1.2); hand(0.08, 0.004, -0.6);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.014, 16), nickel); crown.rotation.z = Math.PI / 2; crown.position.set(0.112, 0, 0); g.add(crown);
+    for (const side of [1, -1]) { const strap = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.008, 0.16), leatherP); strap.position.set(0, -0.006, side * 0.18); g.add(strap); }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+  const keysProp = makeKeys(), watchProp = makeWatch();
+  keysProp.visible = watchProp.visible = false;
+  coinGroup.add(keysProp, watchProp);
+  let propsDropped = false;
+  const queue = [];                                             // { at: elapsed seconds, fn }
   let coinT = 0, groundT = 0, ageT = 0, hideT = 0;
   // Interaction state: drag-to-rotate with inertia (offsets relax while the page scrolls, persist while it rests),
   // scroll-velocity kicks, and coins dropped into the pocket by the visitor.
@@ -738,9 +798,11 @@ export function createScene(canvas, options = {}) {
     under:  { elev: -24,  width: 0.44, nx: 0, ny: 0 },   // the foot ring and chamfer from below
     lip:    { elev: 20,   width: 0.44, nx: 0, ny: 0 },   // low enough to read the pocket depth against the lip
     // FEATURES presets: the tray sits in the right two thirds beside a frosted panel (portrait: upper half, pnx/pny).
-    f1:     { elev: 22,   width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, props: true },   // coins land in the pocket
-    f2:     { elev: 7,    width: 0.40, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, ground: true },  // on a lit desk, shadow tight underneath
-    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pnx: 0, pny: 0.26, age: true },    // the walnut deepens and recovers on a slow cycle
+    f1:     { elev: 22,   width: 0.40, nx: 0.30, ny: 0, pwidth: 0.60, pnx: 0, pny: 0.40, props: true, ground: true, wall: true },   // the hall table: keys, a watch and coins land in the pocket
+    f2:     { elev: 89.5, width: 0.36, nx: 0.30, ny: 0, pwidth: 0.56, pnx: 0, pny: 0.40, set: true },     // back on the cutting mat, top-down, under the measuring handles
+    spinPlate: { elev: 30, width: 0.62, nx: 0, ny: 0, pwidth: 0.70, pnx: 0, pny: 0 },       // the turntable video plate
+    code:   { elev: 32, width: 0.46, nx: 0, ny: -0.04, pwidth: 0.62, pnx: 0, pny: -0.2 },  // the closing beat: the lathe as wireframe
+    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pwidth: 0.58, pnx: 0, pny: 0.40, age: true },    // the walnut deepens and recovers on a slow cycle
     // Later beats: the underside flip, a macro across the rim, a small 3/4 between review columns, and 'away'
     // (tray hidden) for sections that paint their own ground or carry the tray as plates.
     flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0, pwidth: 0.44, pnx: 0, pny: -0.42 },   // portrait: below the centred copy
@@ -753,6 +815,9 @@ export function createScene(canvas, options = {}) {
     letterO:{ elev: 89.5, dynamic: true },
     tile:   { elev: 89.5, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
+    // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
+    slotQuarter: { elev: 35, dynamic: true },
+    slotTop:     { elev: 89.5, dynamic: true },
     macro:  { elev: 12,   width: 0.88, nx: 0, ny: -0.38, pwidth: 1.3, pnx: 0.05, pny: -0.30, pointerYaw: 22, pointerElev: 5 },   // grain level in the lower third; the pointer sweeps along the rim
     quarter:{ elev: 35,   width: 0.34, nx: 0, ny: 0, pwidth: 0.40, pnx: 0.70, pny: 0.62 },   // portrait: the reviews stack over the centre, so the tray sits top-right
   };
@@ -788,7 +853,7 @@ export function createScene(canvas, options = {}) {
     const o = name && PRESETS[name];
     dst.yaw = base.yaw; dst.still = 0;
     if (!o) { dst.elev = base.elev; dst.width = base.width; dst.nx = base.nx; dst.ny = base.ny; dst.vd = base.vd; return dst; }
-    dst.elev = o.elev; dst.vd = 1; dst.still = o.still ? 1 : 0;
+    dst.elev = o.elev; dst.vd = o.set ? 0 : 1; dst.still = o.still ? 1 : 0;
     if (o.yaw != null) dst.yaw = o.yaw + Math.round((base.yaw - o.yaw) / 360) * 360;   // the nearest turn, never the long way round
     const portrait = aspect < 1;
     if (o.dynamic) { const fo = focus[name] || { nx: 0, ny: 0, width: 0.2 }; dst.width = fo.width; dst.nx = fo.nx; dst.ny = fo.ny; }
@@ -900,7 +965,7 @@ export function createScene(canvas, options = {}) {
     const oNow = override && PRESETS[override];
     const pgY = (oNow && oNow.pointerYaw) || 4.0, pgE = (oNow && oNow.pointerElev) || 3.0;
     view.elev = clamp(cur.elev + driftEl - pointerCur.y * pgE * (1 - sw) + drag.elev, -60, 89.9);
-    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * pgY * (1 - sw) + drag.yaw;
+    view.yaw = cur.yaw + spinAngle + drift + pointerCur.x * pgY * (1 - sw) + drag.yaw + extraYaw;
     // Pointer parallax: a gentle pan across the photograph in the hero, a nudge of the object in the void.
     view.width = cur.width;
     view.nx = cur.nx + pointerCur.x * (0.006 * vd + 0.014 * (1 - vd)) * (1 - sw);
@@ -918,7 +983,7 @@ export function createScene(canvas, options = {}) {
           if (Math.abs(c.vy) < 0.25 || c.bounces > 3) { c.vy = 0; c.settled = true; }
         }
         const air = clamp((m.position.y - c.rest) / 1.2, 0, 1);
-        m.rotation.x = c.tiltX * air; m.rotation.z = c.tiltZ * air; m.rotation.y += c.spin * dt;
+        m.rotation.x = c.tiltX * air; m.rotation.z = c.tiltZ * air; m.rotation.y += c.spin * dt * air;
         const rr = Math.hypot(m.position.x, m.position.z);           // stay inside the pocket wall
         if (rr > 0.72) { m.position.x *= 0.72 / rr; m.position.z *= 0.72 / rr; c.vx = -c.vx * 0.4; c.vz = -c.vz * 0.4; }
       }
@@ -928,11 +993,34 @@ export function createScene(canvas, options = {}) {
     const o = override && PRESETS[override];
     // FEATURES props: ease in and out with the beat.
     coinT += ((o && o.props ? 1 : 0) - coinT) * a; groundT += ((o && o.ground ? 1 : 0) - groundT) * a;
+    const wallT = o && o.wall ? groundT : Math.max(0, groundT - (o && o.ground ? 0 : 0));
     coinGroup.visible = coinT > 0.01; ground.visible = groundT > 0.01;
-    brassP.opacity = nickel.opacity = coinT; groundMat.opacity = groundT;
+    brassP.opacity = nickel.opacity = darkP.opacity = leatherP.opacity = coinT; groundMat.opacity = groundT;
+    wallMat.opacity = skirt.material.opacity = (o && o.wall ? 1 : 0) * groundT;
+    wall.visible = skirt.visible = wallMat.opacity > 0.01;
+    wallGroup.rotation.y = view.yaw * DEG;
+    // The keys and the watch drop in the first time the hall table appears; visitors add coins themselves.
+    if (!isStatic) {
+      if (coinT > 0.5 && !propsDropped) {
+        propsDropped = true;
+        queue.push({ at: elapsed + 0.05, fn: () => dropObject(keysProp, -0.40, 0.40, 0.03, 0.9) });
+        queue.push({ at: elapsed + 0.45, fn: () => dropObject(watchProp, 0.22, -0.06, 0.021, -0.5) });
+      }
+      if (coinT < 0.05 && propsDropped && !(o && o.props)) { propsDropped = false; keysProp.visible = watchProp.visible = false; }
+      for (let i = queue.length - 1; i >= 0; i--) if (elapsed >= queue[i].at) { const q = queue.splice(i, 1)[0]; q.fn(); }
+    }
+    // "Made of code": the wood thins to a ghost while the wireframe of the same lathe comes up.
+    codeT += (codeTarget - codeT) * a;
+    wood.transparent = codeT > 0.001; wood.opacity = 1 - codeT * 0.92; wood.depthWrite = codeT < 0.5;
+    wire.visible = codeT > 0.01; wire.material.opacity = codeT * 0.8;
+    stampFloor.material.opacity = stampUnder.material.opacity = 1 - codeT;
+    stampFloor.visible = stampUnder.visible = codeT < 0.02;              // otherwise their depth write punches a hole in the wireframe
     const ageTarget = o && o.age && !reduced ? (1 - Math.cos(elapsed * (Math.PI * 2 / 9))) / 2 : (o && o.age ? 0.5 : 0);
     ageT += (ageTarget - ageT) * (snap ? 1 : Math.min(1, a * 1.5));
     wood.color.setRGB(lerp(1, 0.56, ageT), lerp(1, 0.50, ageT), lerp(1, 0.46, ageT));
+    // The whole scene grades with the ageing: a touch under-exposed and warmer, like an evening ten years on.
+    renderer.toneMappingExposure = lerp(1.08, 0.86, ageT);
+    key.color.setRGB(1.0, lerp(0.843, 0.72, ageT), lerp(0.682, 0.47, ageT));
     key.castShadow = matGroup.visible || ground.visible || coinGroup.visible;
     key.shadow.intensity = Math.max(1 - vd, groundT, coinT);
   }
@@ -956,6 +1044,14 @@ export function createScene(canvas, options = {}) {
   const onContextRestored = () => { requestRender(); };
   canvas.addEventListener('webglcontextlost', onContextLost, false);
   canvas.addEventListener('webglcontextrestored', onContextRestored, false);
+
+  // Drop any prop into the pocket: it falls from above, bounces once or twice and settles flat.
+  function dropObject(mesh, x, z, restH, rotY) {
+    mesh.visible = true;
+    mesh.position.set(x, FLOOR_Y + 1.3, z); mesh.rotation.set(0, rotY, 0);
+    dropped.push({ mesh, vy: -0.3, vx: 0, vz: 0, rest: FLOOR_Y + restH, settled: false, bounces: 0, tiltX: (Math.random() - 0.5) * 0.5, tiltZ: (Math.random() - 0.5) * 0.5, spin: (Math.random() - 0.5) * 1.5 });
+    requestRender();
+  }
 
   function retarget(mutate, animate) {
     if (animate && !first && !isStatic) {
@@ -982,7 +1078,7 @@ export function createScene(canvas, options = {}) {
     },
     getAge() { return ageT; },
     // Interaction ---------------------------------------------------------------------------------------
-    getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: cur.vd > 0.5 }; },
+    getBounds() { return { x: bounds.x, y: bounds.y, r: bounds.r, visible: trayGroup.visible, void: cur.vd }; },
     // Screen-space target for a dynamic view: centre (css px) and diameter (css px), landed exactly.
     setFocus(name, x, y, d) { focus[name] = { nx: (x / W - 0.5) * 2, ny: -(y / H - 0.5) * 2, width: clamp(d / W, 0.02, 1.6) }; requestRender(); },
     // Cream grounds behind the tray, as css-px rects {top, bottom, left?, right?}; pass [] to clear.
@@ -998,6 +1094,15 @@ export function createScene(canvas, options = {}) {
     },
     dragEnd() { drag.active = false; drag.vYaw = clamp(drag.vYaw, -540, 540); drag.vElev = clamp(drag.vElev, -240, 240); requestRender(); },
     kick(degPerSec) { if (!reduced) { drag.vYaw = clamp(drag.vYaw + degPerSec * cur.vd, -180, 180); requestRender(); } },
+    setCode(t) { codeTarget = clamp(Number(t) || 0, 0, 1); requestRender(); },
+    setYawOffset(deg) { extraYaw = Number(deg) || 0; requestRender(); },
+    getStats() {
+      const pos = T.geo.getAttribute('position');
+      const tris = T.geo.index ? T.geo.index.count / 3 : pos.count / 3;
+      let canvases = 0; const seenT = new Set();
+      scene.traverse(ob => { const ms = ob.isMesh ? (Array.isArray(ob.material) ? ob.material : [ob.material]) : []; for (const m of ms) for (const k of Object.keys(m)) { const v = m[k]; if (v && v.isTexture && !seenT.has(v)) { seenT.add(v); canvases++; } } });
+      return { triangles: Math.round(tris), wireSegments: wire.geometry.getAttribute('position').count / 2, canvases, drawCalls: renderer.info.render.calls, lights: [key, spot, rim, front, bounce, hemi].length };
+    },
     dropCoin() {
       if (reduced && isStatic) return;
       const brass = Math.random() < 0.6;
@@ -1008,7 +1113,8 @@ export function createScene(canvas, options = {}) {
       coinGroup.add(mesh);
       dropped.push({ mesh, vy: -0.4, vx: (Math.random() - 0.5) * 0.5, vz: (Math.random() - 0.5) * 0.5, rest: FLOOR_Y + h / 2, settled: false, bounces: 0,
         tiltX: (Math.random() - 0.5) * 1.6, tiltZ: (Math.random() - 0.5) * 1.6, spin: (Math.random() - 0.5) * 6 });
-      while (dropped.length > 10) { const old = dropped.shift(); coinGroup.remove(old.mesh); }
+      let coins = dropped.filter(d => d.mesh !== keysProp && d.mesh !== watchProp);
+      while (coins.length > 10) { const old = coins.shift(); dropped.splice(dropped.indexOf(old), 1); coinGroup.remove(old.mesh); }
       requestRender();
     },
     setSpin(on) { spinning = !!on; if (!spinning && (isStatic || reduced)) spinAngle = 0; requestRender(); },
