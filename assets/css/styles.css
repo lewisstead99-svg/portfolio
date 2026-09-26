@@ -601,6 +601,7 @@ html.has-cursor .plate img, html.has-cursor .plate video { cursor: none; }
   .beat__head, .turning__pin .beat__head { gap: var(--spacing-8); }
   .statement__note { top: 62%; }
   .statement .body { font-size: 17px; line-height: 1.3; max-width: 46ch; }
+  .callout--bl, .callout--br, .leaders path:nth-of-type(n+3), .leaders circle:nth-of-type(n+3) { display: none; }   /* the lower callouts would sit in the copy */
   .statement .price { font-size: var(--text-xs); }
   .light .light__top { top: 64px; }
   .reviews { padding-top: 84px; }
