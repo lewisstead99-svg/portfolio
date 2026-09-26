@@ -78,6 +78,9 @@ function layoutGallery() {
     marquee.style.transform = `translate(${innerWidth - roll * (innerWidth + w)}px, -50%)`;
   }
   gallery.classList.toggle('is-settled', t > 0.45);
+  // As the gallery leaves, its plates and kicker fade before the next beat's set comes in behind them.
+  const leave = clamp((r.bottom - innerHeight * 0.45) / (innerHeight * 0.35), 0, 1);
+  gallery.style.setProperty('--leave', leave.toFixed(3));
   if (track) {
     const slide = clamp((t - 0.45) / 0.55, 0, 1);
     const plate = track.firstElementChild;

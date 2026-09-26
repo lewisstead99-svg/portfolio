@@ -16,7 +16,7 @@ import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 
 const DEG = Math.PI / 180;
 const FOV = 30;              // long-ish lens: editorial product photography, little distortion
-const MAX_H = 0.58;          // on landscape screens the tray never spans more than this fraction of the viewport height
+const MAX_H = 0.58;          // on landscape screens the tray never spans more than this fraction of the viewport height (less when the window is short)
 const TRAY_D = 2.0;          // 1 unit = 100 mm → Ø 200 mm
 const VOID = 0x100904;       // page background; fog fades the far rim toward it
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -956,7 +956,7 @@ export function createScene(canvas, options = {}) {
     // top-down, over the edge to the underside, back to a 3/4 rest at the section's anchor (0.40). FEATURES run
     // on presets, PRODUCT (≈0.82) is a clean top plateau, the DRAWING and CONTACT plates are small top-downs.
     elev:  [[0, 83], [0.18, 83], [0.26, 60], [0.31, 12], [0.35, -34], [0.40, 35], [0.50, 20], [0.70, 20], [0.78, 89.5], [0.86, 89.5], [0.92, 89.5], [1, 89.5]],
-    yaw:   [[0, 0], [0.18, 0], [0.26, -10], [0.40, 110], [0.50, 130], [0.70, 160], [0.78, 270], [1, 270]],  // top plates square up: grain vertical
+    yaw:   [[0, 0], [0.18, 0], [0.26, -10], [0.40, 50], [0.50, 40], [0.70, 20], [0.78, 0], [1, 0]],   // a gentle turn through the intro; flat views square up with the hero, stamp upright
     width: [[0, 0.38], [0.18, 0.38], [0.26, 0.40], [0.46, 0.40], [0.54, 0.44], [0.66, 0.44], [0.74, 0.40], [0.86, 0.40], [0.92, 0.26], [1, 0.26]],
     nx:    [[0, 0.12], [0.18, 0.12], [0.30, 0], [1, 0]],
     ny:    [[0, -0.08], [0.18, -0.08], [0.30, 0], [1, 0]],
@@ -964,43 +964,43 @@ export function createScene(canvas, options = {}) {
   };
   // View overrides keep the scroll yaw (so they never spin the long way) and always void the set.
   const PRESETS = {
-    top:    { elev: 89.5, width: 0.40, nx: 0, ny: 0 },
+    top:    { elev: 89.5, width: 0.40, nx: 0, ny: 0, yaw: 0 },
     side:   { elev: 12,   width: 0.44, nx: 0, ny: 0 },
     detail: { elev: 55,   width: 0.46, nx: 0, ny: 0 },
     under:  { elev: -24,  width: 0.44, nx: 0, ny: 0 },   // the foot ring and chamfer from below
     lip:    { elev: 20,   width: 0.44, nx: 0, ny: 0 },   // low enough to read the pocket depth against the lip
     // FEATURES presets: the tray sits in the right two thirds beside a frosted panel (portrait: upper half, pnx/pny).
     f1:     { elev: 22,   width: 0.40, nx: 0.30, ny: 0, pwidth: 0.60, pnx: 0, pny: 0.40, props: true, ground: true, wall: true },   // the hall table: keys, a watch and coins land in the pocket
-    f2:     { elev: 89.5, width: 0.36, nx: 0.30, ny: 0, pwidth: 0.56, pnx: 0, pny: 0.40, set: true },     // back on the cutting mat, top-down, under the measuring handles
+    f2:     { elev: 89.5, width: 0.36, nx: 0.30, ny: 0, yaw: 0, pwidth: 0.56, pnx: 0, pny: 0.40, set: true },     // back on the cutting mat, top-down, under the measuring handles
     spinPlate: { elev: 30, width: 0.62, nx: 0, ny: 0, pwidth: 0.70, pnx: 0, pny: 0 },       // the turntable video plate
     code:   { elev: 32, width: 0.46, nx: 0, ny: -0.04, pwidth: 0.62, pnx: 0, pny: -0.2 },  // the closing beat: the lathe as wireframe
-    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, pwidth: 0.58, pnx: 0, pny: 0.40, age: true },    // the walnut deepens and recovers on a slow cycle
+    f3:     { elev: 89.5, width: 0.38, nx: 0.30, ny: 0, yaw: 0, pwidth: 0.58, pnx: 0, pny: 0.40, age: true },    // the walnut deepens and recovers on a slow cycle
     // Later beats: the underside flip, a macro across the rim, a small 3/4 between review columns, and 'away'
     // (tray hidden) for sections that paint their own ground or carry the tray as plates.
-    flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0, pwidth: 0.44, pnx: 0, pny: -0.42 },   // portrait: below the centred copy
-    flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0, pwidth: 0.40, pnx: 0, pny: -0.42 },
-    statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0, pwidth: 0.44, pnx: 0, pny: 0.10 },
+    flip:   { elev: -42,  width: 0.36, nx: 0, ny: 0, yaw: 0, pwidth: 0.44, pnx: 0, pny: -0.42 },   // portrait: below the centred copy
+    flipTop:{ elev: 89.5, width: 0.30, nx: 0, ny: 0, yaw: 0, pwidth: 0.40, pnx: 0, pny: -0.42 },
+    statement: { elev: 89.5, width: 0.28, nx: 0, ny: 0, yaw: 0, pwidth: 0.44, pnx: 0, pny: 0.10 },
     // The tray is the thread through the whole page, so nothing ever hides it: it perches above the gallery,
     // becomes the O in HOLM (dynamic: the page passes the letter's on-screen rect), floats over the cream
     // ground of the longevity section and sits inside the cream tile of "Always on".
-    light:  { elev: 89.5, dynamic: true },   // the tray is the o of "longevity": pinned to that glyph's box
+    light:  { elev: 89.5, yaw: 0, still: true, dynamic: true },   // the tray is the o of "longevity": pinned to that glyph's box
     reviewsSlot: { elev: 35, dynamic: true },   // the top row of the reviews, between heading and body
-    letterO:{ elev: 89.5, dynamic: true },
-    footO:  { elev: 89.5, dynamic: true },
+    letterO:{ elev: 89.5, yaw: 0, still: true, dynamic: true },   // glyph-pinned views sit perfectly still: no drift, no parallax
+    footO:  { elev: 89.5, yaw: 0, still: true, dynamic: true },
     lathe:  { elev: 28, width: 0.50, nx: 0, ny: -0.08, pwidth: 0.85, pnx: 0, pny: -0.22, lathe: true },
-    section: { elev: 21, width: 0.46, nx: 0, ny: -0.02, pwidth: 0.82, pnx: 0, pny: -0.25, cut: true },      // the drawing's Section A–A, live: the near half clipped away, the face hatched
-    scale:  { elev: 64, width: 0.31, nx: -0.04, ny: 0, pwidth: 0.50, pnx: 0, pny: -0.25, scale: true },          // a bank card and a phone beside it, both to size   // the turning beat: the blank becomes the tray with the scroll
-    tile:   { elev: 89.5, dynamic: true },
+    section: { elev: 21, width: 0.46, nx: 0, ny: -0.02, yaw: 0, pwidth: 0.82, pnx: 0, pny: -0.25, cut: true },      // the drawing's Section A–A, live: the near half clipped away, the face hatched
+    scale:  { elev: 64, width: 0.31, nx: -0.04, ny: 0, yaw: 0, pwidth: 0.50, pnx: 0, pny: -0.25, scale: true },          // a bank card and a phone beside it, both to size   // the turning beat: the blank becomes the tray with the scroll
+    tile:   { elev: 89.5, yaw: 0, still: true, dynamic: true },
     photo:  { elev: 83,   yaw: 0, still: true, dynamic: true },   // sits exactly on the printed tray in the gallery's photograph: same yaw as the render, no idle drift
     // Portrait: reveal sections pin the tray to their layout slot so it scrolls with the words instead of sitting under them.
     slotQuarter: { elev: 35, dynamic: true },
-    slotTop:     { elev: 89.5, dynamic: true },
+    slotTop:     { elev: 89.5, yaw: 0, dynamic: true },
     macro:  { elev: 12,   width: 0.88, nx: 0, ny: -0.38, pwidth: 1.3, pnx: 0.05, pny: -0.30, pointerYaw: 22, pointerElev: 5, noCap: true },   // grain level in the lower third; the pointer sweeps along the rim
   };
   const FIELDS = ['elev', 'yaw', 'width', 'nx', 'ny', 'vd'];
   const widthKeys = K.width.map(([p, v]) => [p, v]);                  // hero entries re-capped on resize
 
-  let W = 2, H = 2, aspect = 1;
+  let W = 2, H = 2, aspect = 1, maxH = MAX_H, shortNy = 0, shortF = 0;
   let progress = 0, override = null, spinning = false, spinAngle = 0;
   const pointer = { x: 0, y: 0 }, pointerCur = { x: 0, y: 0 };
   const cur = { elev: 83, yaw: 0, width: 0.38, nx: 0.2, ny: -0.08, vd: 0 };
@@ -1013,7 +1013,7 @@ export function createScene(canvas, options = {}) {
   function targetView(p, out) {
     out.elev = track(K.elev, p); out.yaw = track(K.yaw, p); out.width = track(widthKeys, p);
     if (aspect < 1) out.width = Math.min(out.width * 1.75, 0.72);              // portrait: the tray owns the width
-    else out.width = Math.min(out.width, MAX_H / aspect);                        // wide screens: never taller than MAX_H of the viewport
+    else out.width = Math.min(out.width, maxH / aspect);                         // wide screens: never taller than maxH of the viewport
     out.nx = track(K.nx, p); out.ny = track(K.ny, p); out.vd = track(K.vd, p);
     out.still = 0;
     if (blend.a || blend.b) {
@@ -1038,8 +1038,8 @@ export function createScene(canvas, options = {}) {
     const portrait = aspect < 1;
     if (o.dynamic) { const fo = focus[name] || { nx: 0, ny: 0, width: 0.2 }; dst.width = fo.width; dst.nx = fo.nx; dst.ny = fo.ny; }
     else {
-      dst.width = portrait ? (o.pwidth != null ? o.pwidth : Math.min(o.width * 1.75, 0.72)) : (o.noCap ? o.width : Math.min(o.width, MAX_H / aspect));
-      dst.nx = portrait && o.pnx != null ? o.pnx : o.nx; dst.ny = portrait && o.pny != null ? o.pny : o.ny;
+      dst.width = portrait ? (o.pwidth != null ? o.pwidth : Math.min(o.width * 1.75, 0.72)) : (o.noCap ? o.width * (1 - 0.25 * shortF) : Math.min(o.width, maxH / aspect));   // the macro shrinks a little in short windows
+      dst.nx = portrait && o.pnx != null ? o.pnx : o.nx; dst.ny = (portrait && o.pny != null ? o.pny : o.ny) + (portrait || o.noCap ? 0 : shortNy);
     }
     return dst;
   }
@@ -1451,6 +1451,8 @@ export function createScene(canvas, options = {}) {
     setSpin(on) { spinning = !!on; if (!spinning && (isStatic || reduced)) spinAngle = 0; requestRender(); },
     resize(width, height, dpr = 1) {
       W = Math.max(1, width | 0); H = Math.max(1, height | 0); aspect = W / H;
+      const shortness = aspect < 1 ? 0 : clamp((720 - H) / 220, 0, 1);       // 0 at 720 px tall and above, 1 at 500
+      maxH = lerp(MAX_H, 0.44, shortness); shortNy = -0.07 * shortness; shortF = shortness;
       const heroCap = Math.min(0.38, 0.6 / aspect);           // hero: never taller than 60% of the viewport
       widthKeys[0][1] = widthKeys[1][1] = heroCap;
       layoutProps(aspect < 1); layoutScale(aspect < 1);

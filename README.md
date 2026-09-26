@@ -94,6 +94,10 @@ The page follows the beat structure of the reference site, section for section, 
   flip or a quarter turn.
 - **It knows where you are.** The loader draws the section profile and counts to a hundred while the first frame compiles, and the
   vertical serial on the right carries a chapter counter (05 / 15) that follows the beats.
+- **Fits short windows.** Embedded previews and laptops with browser chrome get a smaller tray sitting a
+  little lower, tighter type and padding, so every beat's heading clears the object. Flat views all share
+  the hero's orientation, so the stamp reads upright wherever the tray is shown from above, and the
+  glyph-pinned views (the O of HOLM, the o of longevity, the tile, the footer) sit perfectly still.
 - **Degrades honestly.** Without WebGL the page shows static plates rendered from the same scene. Reduced
   motion is respected (no idle drift, no easing lag, no spin, no typing).
 

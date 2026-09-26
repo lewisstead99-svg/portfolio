@@ -236,10 +236,11 @@ section { position: relative; min-height: var(--vh); }
 .gallery__pin { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .gallery__kicker { position: absolute; left: var(--gutter); top: 9%; z-index: 3; display: flex; flex-direction: column; gap: var(--spacing-8); opacity: 0; transition: opacity .5s var(--ease-out); }
 .gallery__small { font-size: var(--text-subheading); text-transform: none; font-weight: var(--weight-medium); }
-.gallery.is-settled .gallery__kicker { opacity: 1; }
+.gallery.is-settled .gallery__kicker { --kick: 1; }
 .gallery__headline { position: absolute; left: 0; top: 50%; transform: translate(100vw, -50%); font-size: clamp(64px, 17vw, 300px); line-height: 1; text-transform: none; font-weight: var(--weight-medium); white-space: nowrap; will-change: transform; z-index: 1; }
 .gallery.is-settled .gallery__headline { opacity: 0; transition: opacity .4s; }
-.gallery__track { position: absolute; left: 50%; top: 50%; z-index: 2; display: flex; gap: var(--spacing-24); transform: translate(calc(-1 * var(--plate-w) / 2), -50%); will-change: transform; }
+.gallery__track { position: absolute; left: 50%; top: 50%; z-index: 2; display: flex; gap: var(--spacing-24); transform: translate(calc(-1 * var(--plate-w) / 2), -50%); will-change: transform; opacity: var(--leave, 1); }
+.gallery__kicker { opacity: calc(var(--leave, 1) * var(--kick, 0)); }
 :root { --plate-w: min(34vw, 48vh); --plate-h: calc(var(--plate-w) * 4 / 3); }   /* 3:4, the plate renders' own aspect, so nothing is cropped */
 .plate { position: relative; flex: 0 0 var(--plate-w); height: var(--plate-h); border: 1px dashed var(--color-cork-border); overflow: hidden; display: grid; place-items: center; }
 .plate img { width: 100%; height: 100%; object-fit: contain; }
@@ -353,8 +354,9 @@ section { position: relative; min-height: var(--vh); }
 .light__hero > :not(.footnote):not(.light__top):not(.light__side):not(.light__slot) { position: relative; }
 .light__hero > .footnote { position: absolute; }
 @keyframes dapple { from { transform: translate(0, 0) scale(1); } to { transform: translate(-4%, 3%) scale(1.06); } }
-.light__top { position: absolute; top: 96px; left: 0; right: 0; text-align: center; }
-.light__side { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); }
+.light .light__top { position: absolute; top: 96px; left: 0; right: 0; text-align: center; opacity: 0; transition: opacity .5s var(--ease-out); }
+.light .light__side { position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .5s var(--ease-out); }
+.is-light .light .light__top, .is-light-mid .light .light__side { opacity: 1; }   /* the labels wait until the cream section has actually arrived */
 .light__word { font-size: clamp(64px, 15vw, 260px); line-height: .95; text-transform: none; font-weight: var(--weight-medium); white-space: nowrap; }
 /* The o is the tray: an empty glyph box the scene fills with a top-down walnut disc. */
 .light__o { display: inline-block; width: .56em; height: .56em; margin: 0 .02em; vertical-align: -0.02em; }
@@ -588,6 +590,27 @@ html.has-cursor .plate img, html.has-cursor .plate video { cursor: none; }
 .holdbar__arrow { margin-left: auto; }
 .holdbar.is-on { transform: none; }
 @media (max-width: 820px) and (pointer: coarse) { .holdbar:not([hidden]) { display: flex; } .holdbar ~ .cue, .is-holdbar .cue { opacity: 0; } }
+
+/* Short landscape windows (embedded previews, laptops with browser chrome): tighter type and padding so heads clear the tray */
+@media (min-width: 821px) and (max-height: 700px) {
+  .reveal, .statement, .letters, .light__hero, .foot { padding-top: 72px; }
+  .beat, .turning__pin { padding-top: 72px; padding-bottom: 64px; }
+  .display { font-size: clamp(32px, 4.4vw, 52px); }
+  .heading--centre { font-size: clamp(22px, 2vw, 28px); }
+  .beat__body { font-size: 13px; line-height: 1.35; max-width: 52ch; }
+  .beat__head, .turning__pin .beat__head { gap: var(--spacing-8); }
+  .statement__note { top: 62%; }
+  .statement .body { font-size: 17px; line-height: 1.3; max-width: 46ch; }
+  .statement .price { font-size: var(--text-xs); }
+  .light .light__top { top: 64px; }
+  .reviews { padding-top: 84px; }
+  .reviews__heading { font-size: clamp(28px, 2.6vw, 40px); }
+  .cta__heading { font-size: clamp(28px, 2.6vw, 40px); }
+  .turning__read dd { font-size: var(--text-sm); }
+  .hero__lockup { top: 72px; }
+  .wordmark { font-size: clamp(64px, 9vw, 120px); }
+  .stats { gap: var(--spacing-24); }
+}
 
 /* Keys card */
 .keys { position: fixed; left: 50%; top: 50%; z-index: 40; transform: translate(-50%, -50%); width: min(360px, calc(100% - 2 * var(--gutter))); background: rgba(16, 9, 4, .94); }
