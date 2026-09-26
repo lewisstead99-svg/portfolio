@@ -735,7 +735,7 @@ export function createScene(canvas, options = {}) {
   }
   layoutScale(false);
 
-  const CUT_AZ = 40 * DEG, X_AXIS = new THREE.Vector3(1, 0, 0), _tip = new THREE.Vector3(), _hdir = new THREE.Vector3();
+  const CUT_AZ = 40 * DEG, X_AXIS = new THREE.Vector3(1, 0, 0), _tip = new THREE.Vector3(), _hdir = new THREE.Vector3(), _q = new THREE.Quaternion();
   // A chip is a shaving: the lathe sprays them from the tool, and a claimed number bursts a handful from the pocket.
   function emitChip(px, py, pz, vx, vy, vz) {
     const c = chip[chipHead]; chipHead = (chipHead + 1) % CHIPS;
@@ -762,20 +762,29 @@ export function createScene(canvas, options = {}) {
   const wrapPi = (a) => ((a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
   function updateLathe(dt, eff, yawRad) {
     latheGroup.rotation.y = yawRad;
-    // the point being cut now: the profile point whose carve time is nearest the current progress
-    const { carveP, blankP, P } = morph; let jc = 0, best = 1e9;
-    for (let j = 0; j < carveP.length; j++) { const d = Math.abs(carveP[j] - eff); if (d < best) { best = d; jc = j; } }
-    const k = smooth((eff - carveP[jc] + 0.08) / 0.08);
-    const r = lerp(blankP[jc][0], P[jc].x, k), y = lerp(blankP[jc][1], P[jc].y, k);
-    const pocket = jc > morph.carveP.length * 0.5 && r < 0.93;               // lip, inner wall and floor: the tool comes in over the rim
-    // The bar always rises away from the cut: steeply out of the pocket (clearing the lip), gently off the outside.
-    _hdir.set(Math.sin(CUT_AZ) * (pocket ? 0.75 : 1.0), pocket ? 0.95 : 0.42, Math.cos(CUT_AZ) * (pocket ? 0.75 : 1.0) + (pocket ? 0.35 : 0.5)).normalize();
+    // The point being cut now, interpolated along the profile so the tool travels rather than hops: the surface
+    // between the two profile points whose carve times bracket the progress, each part-way from blank to finished.
+    const { carveP, blankP, P } = morph, N = carveP.length;
+    let j = 0; while (j < N - 2 && carveP[j + 1] < eff) j++;
+    const tj = clamp((eff - carveP[j]) / Math.max(1e-6, carveP[j + 1] - carveP[j]), 0, 1);
+    const kA = smooth((eff - carveP[j] + 0.08) / 0.08), kB = smooth((eff - carveP[j + 1] + 0.08) / 0.08);
+    const rA = lerp(blankP[j][0], P[j].x, kA), yA = lerp(blankP[j][1], P[j].y, kA);
+    const rB = lerp(blankP[j + 1][0], P[j + 1].x, kB), yB = lerp(blankP[j + 1][1], P[j + 1].y, kB);
+    const r = lerp(rA, rB, tj), y = lerp(yA, yB, tj);
+    const pocket = j > N * 0.5 && r < 0.95;                                    // lip, inner wall and floor
+    // Outside, the bar leaves the wall radially and rises a little. In the pocket it goes out to the lens's right
+    // and up steeply, over the rim, so from the camera it reads as a tool held over the edge, not lying in the bowl.
+    if (pocket) _hdir.set(1.0, 0.8, -0.05).normalize();
+    else _hdir.set(Math.sin(CUT_AZ), 0.42, Math.cos(CUT_AZ) + 0.5).normalize();
     _tip.set(r * Math.sin(CUT_AZ), y, r * Math.cos(CUT_AZ)).addScaledVector(_hdir, 0.016);   // the tip kisses the surface
     const cutting = eff < 0.995;
-    chisel.visible = cutting && !(y < 0.035 && r < 0.93);   // the underside is cut out of sight; the tool shows from the foot on
-    if (cutting) {
-      chisel.position.copy(_tip);
-      chisel.quaternion.setFromUnitVectors(X_AXIS, _hdir);
+    const show = cutting && !(y < 0.035 && r < 0.93);                          // the underside is cut out of sight; the tool shows from the foot on
+    if (show && !chisel.visible) { chisel.position.copy(_tip); chisel.quaternion.setFromUnitVectors(X_AXIS, _hdir); }
+    chisel.visible = show;
+    if (show) {                                                                 // ease toward the cut so nothing jumps
+      const e = 1 - Math.exp(-dt * 14);
+      chisel.position.lerp(_tip, e);
+      _q.setFromUnitVectors(X_AXIS, _hdir); chisel.quaternion.slerp(_q, e);
     }
     // shavings: a trickle while it spins, a spray while the cut advances
     const rate = cutting ? 8 + 110 * clamp(cutRate / 0.6, 0, 1) : 0;
