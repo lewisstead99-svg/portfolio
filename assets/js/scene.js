@@ -683,11 +683,11 @@ export function createScene(canvas, options = {}) {
     const handle = new THREE.Mesh(new THREE.LatheGeometry(prof, 28).rotateZ(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#5a3520', roughness: 0.55 })); handle.position.x = 0.67; chisel.add(handle); }
   latheGroup.add(chisel);
   const CHIPS = 140;
-  const chips = new THREE.InstancedMesh(new THREE.BoxGeometry(0.055, 0.004, 0.02), new THREE.MeshStandardMaterial({ color: '#c39a6c', roughness: 0.85 }), CHIPS);
+  const chips = new THREE.InstancedMesh(new THREE.BoxGeometry(0.055, 0.004, 0.02), new THREE.MeshStandardMaterial({ color: '#8a5a36', roughness: 0.9 }), CHIPS);
   chips.instanceMatrix.setUsage(THREE.DynamicDrawUsage); chips.frustumCulled = false;
   const chip = Array.from({ length: CHIPS }, () => ({ life: 0, max: 1, p: new THREE.Vector3(), v: new THREE.Vector3(), r: new THREE.Euler(), w: new THREE.Vector3() }));
   const _o3 = new THREE.Object3D(), _tmpC = new THREE.Color();
-  for (let i = 0; i < CHIPS; i++) { chips.setColorAt(i, _tmpC.setHSL(0.075, 0.42, 0.42 + Math.random() * 0.22)); _o3.scale.setScalar(0); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix); }
+  for (let i = 0; i < CHIPS; i++) { chips.setColorAt(i, _tmpC.setHSL(0.07, 0.38, 0.30 + Math.random() * 0.2)); _o3.scale.setScalar(0); _o3.updateMatrix(); chips.setMatrixAt(i, _o3.matrix); }
   latheGroup.add(chips);
   let chipAcc = 0, chipHead = 0;
   // ---- Section A–A, live: a clipping plane facing the lens sweeps in and takes the near half away; the cut face is
@@ -766,12 +766,14 @@ export function createScene(canvas, options = {}) {
     const { carveP, blankP, P } = morph; let jc = 0, best = 1e9;
     for (let j = 0; j < carveP.length; j++) { const d = Math.abs(carveP[j] - eff); if (d < best) { best = d; jc = j; } }
     const k = smooth((eff - carveP[jc] + 0.08) / 0.08);
-    const r = lerp(blankP[jc][0], P[jc].x, k) + 0.012, y = lerp(blankP[jc][1], P[jc].y, k);
-    _tip.set(r * Math.sin(CUT_AZ), y, r * Math.cos(CUT_AZ));
+    const r = lerp(blankP[jc][0], P[jc].x, k), y = lerp(blankP[jc][1], P[jc].y, k);
+    const pocket = jc > morph.carveP.length * 0.5 && r < 0.93;               // lip, inner wall and floor: the tool comes in over the rim
+    // The bar always rises away from the cut: steeply out of the pocket (clearing the lip), gently off the outside.
+    _hdir.set(Math.sin(CUT_AZ) * (pocket ? 0.75 : 1.0), pocket ? 0.95 : 0.42, Math.cos(CUT_AZ) * (pocket ? 0.75 : 1.0) + (pocket ? 0.35 : 0.5)).normalize();
+    _tip.set(r * Math.sin(CUT_AZ), y, r * Math.cos(CUT_AZ)).addScaledVector(_hdir, 0.016);   // the tip kisses the surface
     const cutting = eff < 0.995;
     chisel.visible = cutting && !(y < 0.035 && r < 0.93);   // the underside is cut out of sight; the tool shows from the foot on
     if (cutting) {
-      _hdir.set(0.9 * Math.sin(CUT_AZ), -0.22, 0.9 * Math.cos(CUT_AZ) + 0.55).normalize();
       chisel.position.copy(_tip);
       chisel.quaternion.setFromUnitVectors(X_AXIS, _hdir);
     }

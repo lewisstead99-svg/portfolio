@@ -36,7 +36,7 @@ try {
   await page.close();
 } finally { await browser.close(); server.kill(); }
 const run = (args) => { const r = spawnSync(FF, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: 'inherit' }); if (r.status !== 0) throw new Error('ffmpeg failed: ' + args.join(' ')); };
-run(['-framerate', '24', '-i', path.join(frames, 'f%03d.png'), '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '34', '-pix_fmt', 'yuv420p', '-an', path.join(out, 'turn.webm')]);
-run(['-framerate', '24', '-i', path.join(frames, 'f%03d.png'), '-c:v', 'libx264', '-crf', '24', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', path.join(out, 'turn.mp4')]);
+run(['-framerate', '24', '-i', path.join(frames, 'f%03d.png'), '-vf', 'scale=out_color_matrix=bt709:out_range=tv', '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '34', '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-an', path.join(out, 'turn.webm')]);
+run(['-framerate', '24', '-i', path.join(frames, 'f%03d.png'), '-vf', 'scale=out_color_matrix=bt709:out_range=tv', '-c:v', 'libx264', '-crf', '24', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv', '-movflags', '+faststart', '-an', path.join(out, 'turn.mp4')]);
 run(['-i', path.join(frames, 'f000.png'), '-q:v', '4', path.join(out, 'turn.jpg')]);
 console.log('wrote turn.webm, turn.mp4, turn.jpg to assets/img/plates');

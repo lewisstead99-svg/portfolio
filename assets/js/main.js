@@ -398,9 +398,9 @@ function trackSections() {
   featureView = featuresActive ? domView : null;
   // Rect-pinned views: where the printed tray sits in the photograph, the O of HOLM, the longevity slot, the live tile.
   if (scene) {
-    // The tray rides the photograph as the plates slide and holds at the left edge with a sliver still showing, so it
-    // never fully leaves the frame and never sits doubled over another plate's printed tray.
-    if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.2 * d), r.top + photoFrac[1] * r.height, d); }
+    // The tray rides the photograph as the plates slide, all the way out of frame, and flies back in when the next
+    // beat calls it; it never sits doubled over another plate's printed tray.
+    if (photoImg && photoFrac) { const r = photoImg.getBoundingClientRect(), d = photoFrac[2] * r.width; scene.setFocus('photo', Math.max(r.left + photoFrac[0] * r.width, -0.7 * d), r.top + photoFrac[1] * r.height, d); }   // it rides the photograph out of frame and flies back in for the next beat
     if (letterO) { const r = letterO.getBoundingClientRect(); scene.setFocus('letterO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
     if (footO) { const r = footO.getBoundingClientRect(); scene.setFocus('footO', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.96 / 1.05); }
     if (lightO) { const r = lightO.getBoundingClientRect(); scene.setFocus('light', r.left + r.width / 2, r.top + r.height / 2, r.width * 0.98); }
