@@ -261,6 +261,7 @@ function setSound(on) {
   soundButton?.setAttribute('aria-label', on ? 'Sound on' : 'Sound off');
   const st = soundButton?.querySelector('.nav__sound-state'); if (st) st.textContent = on ? 'on' : 'off';
   sound.setEnabled(on);
+  if (on) sound.score(Math.max(0, chapterIdx));
   try { localStorage.setItem('holm-sound', on ? '1' : '0'); } catch {}
 }
 soundButton?.addEventListener('click', () => setSound(soundButton.getAttribute('aria-pressed') !== 'true'));
@@ -368,6 +369,9 @@ const footO = document.querySelector('.foot__o');
 const mainSections = [...document.querySelectorAll('main > section')];
 const chapterEl = document.getElementById('chapter');
 let chapterIdx = -1, landedIn = null, landTimer = 0;
+const CHAPTERS = { top: 'Made for keys. Built for desks.', intro: 'Made to hold.', product: 'Made by hand.', gallery: "It's furniture.", features: 'Three things it does.', letters: 'HOLM', flip: 'Numbered by hand.', macro: 'Grip-locked.', longevity: 'Longevity.', turning: 'Turned, not moulded.', reviews: 'People with keys love Holm.', always: 'Always on.', code: 'Made of code.', drawing: 'To scale.', contact: 'Twelve numbers left.', foot: 'Fin.' };
+const letterboxCap = document.getElementById('letterboxCap'), letterboxNum = document.getElementById('letterboxNum');
+const BASE_TITLE = document.title;
 const slotSections = [...document.querySelectorAll('section[data-view-portrait]')];
 const photoImg = document.querySelector('.plate--photo img[data-tray]');
 const photoFrac = photoImg ? photoImg.dataset.tray.split(',').map(Number) : null;
@@ -391,7 +395,16 @@ function trackSections() {
   if (section?.id !== landedIn) { landedIn = section?.id; if (landedIn === 'letters' || landedIn === 'foot') { clearTimeout(landTimer); landTimer = setTimeout(() => { if (sectionEl?.id === landedIn) sound.knock(0.45); }, 700); } }
   if (chapterEl && section) {
     const i = mainSections.indexOf(section);
-    if (i >= 0 && i !== chapterIdx) { chapterEl.textContent = `${String(i + 1).padStart(2, '0')} / ${String(mainSections.length).padStart(2, '0')}`; if (chapterIdx >= 0) sound.tick(0.3); chapterIdx = i; }
+    if (i >= 0 && i !== chapterIdx) {
+      const num = `${String(i + 1).padStart(2, '0')} / ${String(mainSections.length).padStart(2, '0')}`;
+      chapterEl.textContent = num;
+      if (chapterIdx >= 0) sound.tick(0.3);
+      chapterIdx = i;
+      const cap = CHAPTERS[section.id] || '';
+      if (letterboxCap) letterboxCap.textContent = cap; if (letterboxNum) letterboxNum.textContent = num;
+      document.title = i === 0 ? BASE_TITLE : `HOLM — ${cap}`;
+      sound.score(i);
+    }
   }
   featuresActive = section?.id === 'features';
   if (featuresActive) { const st = dom.el.dataset.step || '1'; if (st !== currentStep) setStep(st); }
@@ -640,10 +653,12 @@ if (scene && finePointer && !reducedMotion) {
     cursor.style.transform = `translate3d(${pos.cx}px, ${pos.cy}px, 0) translate(-50%, -50%)`;
     if (Math.abs(pos.x - pos.cx) + Math.abs(pos.y - pos.cy) > 0.3) cursorRaf = requestAnimationFrame(paint);
   }
+  let idleCursor = 0;
   addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
     pos.x = e.clientX; pos.y = e.clientY;
-    cursor.classList.remove('is-hidden');
+    cursor.classList.remove('is-hidden'); cursor.classList.remove('is-idle');
+    clearTimeout(idleCursor); idleCursor = setTimeout(() => { if (!down) cursor.classList.add('is-idle'); }, kiosk ? 1800 : 3200);
     if (down) {
       const now = performance.now(), dt = Math.min(0.1, (now - lastMove) / 1000); lastMove = now;
       const dx = e.clientX - down.lx, dy = e.clientY - down.ly; down.lx = e.clientX; down.ly = e.clientY;
@@ -770,6 +785,7 @@ function saveCard(n) {
     ctx.font = '500 96px Inter, Arial, sans-serif'; ctx.fillText(`Nº ${String(n).padStart(3, '0')}`, 68, 220);
     ctx.font = '500 16px Inter, Arial, sans-serif'; ctx.fillText('HELD FOR YOU · ONE OF TWO HUNDRED', 72, 340);
     ctx.fillStyle = '#6c5f51'; ctx.fillText('HAND TURNED · BLACK WALNUT · MADE IN DORSET', 72, 372);
+    if (dwellS >= 30) ctx.fillText(`${fmtDwell().toUpperCase()} WITH HOLM · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}`, 72, 400);
     ctx.fillStyle = '#dc5000'; ctx.fillText('BUILT BY FABRICATR · FABRICATR.COM', 72, 520);
     const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `holm-no-${String(n).padStart(3, '0')}.png`; document.body.appendChild(a); a.click(); a.remove();
     sound.tick(0.6);
@@ -884,6 +900,7 @@ function tourSteps() {
 function setTour(on) {
   tourOn = on; tourToken++;
   html.classList.toggle('is-touring', on);
+  keepAwake(on || kiosk);
   tourButton?.setAttribute('aria-pressed', String(on));
   tourButton?.setAttribute('aria-label', on ? 'Stop the tour' : 'Tour: let the page play itself');
 }
@@ -896,7 +913,7 @@ async function runTour() {
     if (st.act === 'flip') { if (!await tourSleep(1400, tok)) return; flipButton?.click(); if (!await tourSleep(2400, tok)) return; flipButton?.click(); }
     if (!await tourSleep(st.dwell, tok)) return;
   }
-  if (tourOn && tok === tourToken) setTour(false);
+  if (tourOn && tok === tourToken) { setTour(false); if (kiosk) setTimeout(() => { if (!tourOn) runTour(); }, 5000); }
 }
 tourButton?.addEventListener('click', () => (tourOn ? setTour(false) : runTour()));
 for (const ev of ['wheel', 'touchstart', 'pointerdown']) addEventListener(ev, e => { if (tourOn && !e.target?.closest?.('#tour')) setTour(false); }, { passive: true });
@@ -982,6 +999,58 @@ if (holdbar && matchMedia('(max-width: 820px) and (pointer: coarse)').matches) {
   addEventListener('scroll', sync, { passive: true }); setInterval(sync, 800);
 }
 
+// --- The darkroom: film grain drawn once from noise and shifted every other frame by transform ------------
+{
+  const grain = document.getElementById('grain');
+  if (grain) {
+    const S = 160, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const g = cv.getContext('2d'), img = g.createImageData(S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const v = 150 + Math.random() * 105; d[i] = v; d[i + 1] = v * 0.94; d[i + 2] = v * 0.86; d[i + 3] = Math.random() < 0.5 ? 255 : 0; }
+    g.putImageData(img, 0, 0);
+    grain.style.backgroundImage = `url(${cv.toDataURL('image/png')})`;
+    if (!reducedMotion) { let n = 0; const shift = () => { if (++n % 2 === 0 && !document.hidden) grain.style.transform = `translate3d(${-Math.floor(Math.random() * S)}px, ${-Math.floor(Math.random() * S)}px, 0)`; requestAnimationFrame(shift); }; requestAnimationFrame(shift); }
+  }
+}
+
+// --- Time with the piece: seconds the page has been visible, as m:ss ------------------------------------------
+let dwellS = 0;
+const dwellEl = document.getElementById('dwell');
+const fmtDwell = () => `${Math.floor(dwellS / 60)}:${String(dwellS % 60).padStart(2, '0')}`;
+setInterval(() => { if (document.hidden) return; dwellS++; if (dwellEl && dwellS >= 30 && sectionEl?.id === 'foot') dwellEl.textContent = `${fmtDwell()} with Holm`; }, 1000);
+
+// --- The wall label -----------------------------------------------------------------------------------------------
+const about = document.getElementById('about');
+let aboutReturn = null;
+function setAbout(on) {
+  if (!about) return;
+  about.hidden = !on;
+  if (on) {
+    showKeys(false); closeLightbox(); if (tourOn) setTour(false); if (photoOn) setPhoto(false);
+    aboutReturn = document.activeElement;
+    const meta = document.getElementById('aboutMeta');
+    if (meta) { const st = scene?.getStats?.(); meta.textContent = `${st ? `${st.triangles.toLocaleString('en-GB')} triangles · ${st.canvases} textures drawn · ` : ''}${dwellS >= 30 ? `${fmtDwell()} with Holm so far · ` : ''}Keys ? · Tour P · Photograph C`; }
+    document.getElementById('aboutClose')?.focus();
+    sound.tick(0.5);
+  } else aboutReturn?.focus?.();
+}
+document.getElementById('aboutOpen')?.addEventListener('click', () => setAbout(true));
+document.getElementById('aboutOpenFoot')?.addEventListener('click', () => setAbout(true));
+document.getElementById('aboutClose')?.addEventListener('click', () => setAbout(false));
+document.getElementById('aboutTour')?.addEventListener('click', () => { setAbout(false); runTour(); });
+about?.addEventListener('click', e => { if (e.target === about) setAbout(false); });
+
+// --- Exhibition mode (?kiosk): the tour runs on a loop, restarts after the hand has been still, keeps the screen awake --
+const kiosk = new URLSearchParams(location.search).has('kiosk');
+let wakeLock = null;
+async function keepAwake(on) {
+  try { if (on && !wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; } } catch {}
+}
+if (kiosk) {
+  html.classList.add('is-kiosk');
+  addEventListener('load', () => setTimeout(() => { if (!tourOn) runTour(); }, 2500));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && tourOn) keepAwake(true); });
+}
+
 // --- Keys: the page can be driven from the keyboard; ? shows the card ---------------------------------
 const keysCard = document.getElementById('keys');
 const showKeys = (on) => { if (keysCard) keysCard.hidden = !on; };
@@ -994,7 +1063,8 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   const k = e.key;
   if (k === '?') { showKeys(keysCard?.hidden); sound.tick(0.5); return; }
-  if (k === 'Escape') { showKeys(false); closeLightbox(); if (tourOn) setTour(false); if (photoOn) setPhoto(false); return; }
+  if (k === 'Escape') { showKeys(false); closeLightbox(); setAbout(false); if (tourOn) setTour(false); if (photoOn) setPhoto(false); return; }
+  if (k === 'i' || k === 'I') { setAbout(about?.hidden); return; }
   if (k === 'p' || k === 'P') { tourOn ? setTour(false) : runTour(); return; }
   if (tourOn) setTour(false);
   if (k === 'ArrowDown' || k === 'j' || k === 'PageDown') { e.preventDefault(); gotoBeat(1); }
@@ -1015,6 +1085,7 @@ if (scene && !reducedMotion) {
   const bump = () => { idleAt = performance.now(); };
   for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll']) addEventListener(ev, bump, { passive: true });
   setInterval(() => {
+    if (kiosk && !tourOn && !document.hidden && performance.now() - idleAt > 40000) { runTour(); return; }
     if (document.hidden || tourOn || !html.classList.contains('is-ready') || performance.now() - idleAt < 14000) return;
     idleAt = performance.now() - 6000;                          // the next nudge, if still idle, eight seconds on
     if (featuresActive && currentStep === '1') scene.dropCoin();

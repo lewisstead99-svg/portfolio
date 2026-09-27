@@ -88,7 +88,7 @@ img, svg { display: block; }
 .legal { font-family: var(--font-legal); font-size: var(--text-legal); line-height: var(--leading-legal); max-width: 60ch; }
 .u { text-transform: none; }
 .legal--lg { font-size: var(--text-2xs); }   /* SI units keep their case inside uppercase labels */
-.footnote { position: absolute; right: var(--edge); bottom: var(--spacing-24); font-family: var(--font-legal); font-size: var(--text-legal); line-height: var(--leading-legal); text-align: right; }
+.footnote { position: absolute; right: var(--edge); bottom: var(--spacing-24); max-width: 36ch; font-family: var(--font-legal); font-size: var(--text-legal); line-height: var(--leading-legal); text-align: right; }   /* wraps before it reaches the scroll cue */
 
 /* Masked word reveal */
 .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .1em; margin-bottom: -.1em; }
@@ -108,6 +108,7 @@ img, svg { display: block; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 .loader__label { font-size: var(--text-2xs); line-height: 1; }
 .loader__pct { font-variant-numeric: tabular-nums; margin-left: var(--spacing-6); }
+.loader__title { margin-top: var(--spacing-24); font-size: var(--text-2xs); line-height: 1; color: var(--color-driftwood); }
 @keyframes fill { from { width: 0; } to { width: 100%; } }
 .is-ready .loader { opacity: 0; visibility: hidden; }
 
@@ -137,6 +138,7 @@ main, .nav, .serial, .progress, .cue { position: relative; z-index: 1; }
 .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(2) { animation-delay: -.25s; } .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(3) { animation-delay: -.5s; } .nav__sound[aria-pressed="true"] .nav__sound-wave i:nth-child(4) { animation-delay: -.15s; }
 @keyframes wave { from { height: 2px; } to { height: 10px; } }
 .nav__sound-state { display: inline-block; min-width: 2.2ch; text-align: left; }
+.nav__about { margin-left: var(--spacing-10); }
 .nav__tour-stop, .nav__tour-on { display: none; }
 .nav__tour[aria-pressed="true"] .nav__tour-stop, .nav__tour[aria-pressed="true"] .nav__tour-on { display: inline; }
 .nav__tour[aria-pressed="true"] .nav__tour-play, .nav__tour[aria-pressed="true"] .nav__tour-off { display: none; }
@@ -530,6 +532,10 @@ section { position: relative; min-height: var(--vh); }
 .in .foot__l:nth-child(3) { transition-delay: .1s; } .in .foot__l:nth-child(4) { transition-delay: .2s; }
 .foot__o { display: inline-block; width: .74em; height: .74em; margin: 0 .04em; }
 .foot__keys kbd { font: inherit; border: 1px solid var(--color-cork-border); border-radius: 4px; padding: 0 5px; }
+.foot__about { padding: 0 0 2px; border: 0; border-bottom: 1px dashed transparent; background: none; color: inherit; font: inherit; text-transform: inherit; }
+.foot__about:hover { border-bottom-color: currentColor; }
+.foot__dwell:not(:empty)::before { content: " · "; }
+.foot__dwell { font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { .foot__keys { display: none; } }
 
 /* Turning: a tall beat whose stage is pinned while the scroll carves the blank into the tray */
@@ -612,6 +618,40 @@ html.has-cursor .plate img, html.has-cursor .plate video { cursor: none; }
   .wordmark { font-size: clamp(64px, 9vw, 120px); }
   .stats { gap: var(--spacing-24); }
 }
+
+/* The darkroom: grain and vignette over everything */
+.grain { position: fixed; left: -100%; top: -100%; width: 300%; height: 300%; z-index: 6; pointer-events: none; opacity: .055; background-repeat: repeat; background-size: 160px 160px; will-change: transform; }
+.vignette { position: fixed; inset: 0; z-index: 6; pointer-events: none; background: radial-gradient(ellipse 70% 62% at 50% 50%, rgba(16, 9, 4, 0) 58%, rgba(16, 9, 4, .42) 100%); transition: opacity .6s; }
+.is-light-mid .vignette { opacity: .3; }
+.is-photo .grain, .is-photo .vignette { opacity: 0; }
+
+/* The tour: a letterbox closes in and carries the chapter */
+.letterbox { position: fixed; left: 0; right: 0; z-index: 9; height: 0; background: var(--color-walnut-shadow); transition: height .9s var(--ease-out); pointer-events: none; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--gutter); font-size: var(--text-2xs); line-height: 1; overflow: hidden; }
+.letterbox--top { top: 0; } .letterbox--bottom { bottom: 0; }
+.is-touring .letterbox { height: 7vh; }
+.letterbox__cap, .letterbox__num { opacity: 0; transition: opacity .6s .5s; text-transform: none; }
+.letterbox__num { font-variant-numeric: tabular-nums; }
+.is-touring .letterbox__cap, .is-touring .letterbox__num { opacity: 1; }
+.is-touring .cue, .is-touring .holdbar { opacity: 0 !important; }
+
+/* Exhibition mode: no hints, no offer bar, the cursor gone when the hand is still */
+.is-kiosk .hint, .is-kiosk .holdbar, .is-kiosk .foot__keys { display: none !important; }
+.cursor.is-idle { opacity: 0; }
+
+/* The wall label */
+.about { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: var(--spacing-24) var(--gutter); background: rgba(16, 9, 4, .82); overflow: auto; }
+.about[hidden] { display: none; }
+.about__panel { width: min(640px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: var(--spacing-31); background: rgba(16, 9, 4, .96); display: flex; flex-direction: column; gap: var(--spacing-18); }
+.about__head { display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-10); border-bottom: 1px dashed var(--color-cork-border); }
+.about__title { font-size: var(--text-heading); line-height: 1; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.about__sub { font-size: var(--text-xs); color: var(--color-driftwood); }
+.about__lede { font-size: var(--text-sm); line-height: 1.45; font-weight: var(--weight-regular); text-transform: none; }
+.about__list { display: grid; gap: var(--spacing-12); margin: 0; }
+.about__list div { display: grid; grid-template-columns: 11ch minmax(0, 1fr); gap: var(--spacing-14); padding-top: var(--spacing-12); border-top: 1px dashed var(--color-cork-border); }
+.about__list dt { font-size: var(--text-xs); }
+.about__list dd { margin: 0; font-size: 13px; line-height: 1.4; font-weight: var(--weight-regular); text-transform: none; color: rgba(255, 237, 215, .82); }
+.about__meta { color: var(--color-driftwood); }
+.about__actions { display: flex; gap: var(--spacing-12); flex-wrap: wrap; padding-top: var(--spacing-6); }
 
 /* Keys card */
 .keys { position: fixed; left: 50%; top: 50%; z-index: 40; transform: translate(-50%, -50%); width: min(360px, calc(100% - 2 * var(--gutter))); background: rgba(16, 9, 4, .94); }
@@ -702,6 +742,10 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .strip__panel { border-right: 0; border-bottom: 1px dashed var(--color-cork-border); min-height: 70vw; padding-top: 64px; }
   .nav__sound-text { display: none; }
   .nav__sound { margin-left: 0; }
+  .nav__about { display: none; }
+  .about__panel { padding: var(--spacing-24); }
+  .about__list div { grid-template-columns: 1fr; gap: var(--spacing-6); }
+  .letterbox { display: none; }
   .serial__chapter { display: none; }
   .edition { width: 100%; gap: 4px; }
   .foot { padding-top: 96px; }
@@ -740,6 +784,7 @@ body.is-dragging { user-select: none; -webkit-user-select: none; }
   .rise, .divider, .w > span, .step, .leaders, .callout, .btn--ghost, .scatter__l, .tag, .letters__l, .gallery__kicker, .gallery__headline, .cue, .btn, .nav__links a, .plate { transition: none; }
   .rise, .w > span, .divider, .letters__l, .foot__l, .edition i, .turning__read { opacity: 1; transform: none; transition: none; animation: none; }
   .loader__path { animation: none; stroke-dashoffset: 0; }
+  .grain { opacity: .035; }
   .reveal .label, .reveal .body, .reveal .specs, .reveal .price, .reveal .field, .reveal .credits > *, .reveal .plan, .pin .pills, .beat__body, .beat__foot, .statement__foot, .statement__note, .reviews__body, .review, .reviews__summary, .cta__label, .cta__body, .cta__actions, .share, .light__body, .strip, .always__tile, .always__text .label { opacity: 1; transform: none; transition: none; }
   .loader { transition: none; }
   .loader__fill { animation: none; width: 100%; }

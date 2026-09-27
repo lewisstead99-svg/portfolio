@@ -59,6 +59,17 @@ The page follows the beat structure of the reference site, section for section, 
   saves the frame at twice the resolution. Drag to compose, Space to expose.
 - **One timber.** The gallery's "does it come in oak?" gets a two-second answer: the same grain, in oak,
   then walnut again.
+- **It is framed as a piece.** The loader is a title card ("A study by Fabricatr · MMXXVI · Rendered
+  live"). "About" in the nav, I on the keyboard or the footer link opens the wall label: what this is, how
+  it is made, who made it, with the live triangle and texture counts and the time you have spent with it.
+  A film grain and a vignette sit over everything, as in the darkroom. The footer and the saved card carry
+  how long you spent with Holm.
+- **It has a score.** With sound on, four slow voices hold a warm chord behind a moving low-pass and
+  change key with the chapter, gliding there over a couple of seconds. Synthesised like everything else.
+- **It can be exhibited.** The tour letterboxes the screen and carries the chapter title and number. Open
+  the page with `?kiosk` for exhibition mode: the tour starts on its own, loops, restarts forty seconds
+  after the last touch, keeps the screen awake, and hides the hints and the offer bar. The cursor fades
+  when the hand is still.
 - **Small sounds and small moves.** The tray knocks softly when it lands in the O of HOLM and again in the
   footer's O. Nav links and pills resettle their letters under the pointer. A star falls now and then
   behind "Always on". On phones a slim bar carries the offer along the bottom once the intro has passed.
@@ -137,6 +148,9 @@ Requires Playwright with Chromium (`npm i -g playwright && npx playwright instal
 `PLAYWRIGHT_PATH` to an existing install).
 
 ## Deploy
+
+A GitHub Pages workflow is in `.github/workflows/pages.yml`: it publishes the repository root on every push
+to `main`. Enable it once in the repository settings (Settings → Pages → Source: GitHub Actions).
 
 It is a static folder. GitHub Pages (serve from the branch root), Netlify, Vercel or any bucket will do.
 All paths are relative, so it works from a sub-path such as `/portfolio/`.

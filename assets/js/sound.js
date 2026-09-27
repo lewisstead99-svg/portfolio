@@ -126,10 +126,43 @@ export function createSound() {
     src.connect(bp); bp.connect(g); g.connect(master); src.start(t + 0.02); src.stop(t + 0.16);
     setTimeout(() => knock(0.35), 110);
   }
+  // The score: four slow voices in a warm chord, a pair of detuned triangles each, breathing on their own
+  // clocks behind one gently moving low-pass. The chord changes with the chapter and glides there over a
+  // couple of seconds. Quiet enough to be felt more than heard.
+  const D2 = 73.416;
+  const CHORDS = [[0, 12, 19, 26], [-3, 9, 16, 21], [-7, 12, 19, 23], [-5, 7, 14, 23], [0, 7, 16, 21], [-3, 9, 14, 26]];
+  let scoreRig = null, chordNow = -1;
+  const hz = (semi) => D2 * Math.pow(2, semi / 12);
+  function startScore() {
+    if (scoreRig || !ctx) return;
+    const out = ctx.createGain(); out.gain.value = 0.0001;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 0.6;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.045; const lg = ctx.createGain(); lg.gain.value = 140; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+    lp.connect(out); out.connect(master);
+    const voices = CHORDS[0].map((semi, i) => {
+      const g = ctx.createGain(); g.gain.value = i === 0 ? 0.05 : 0.03;
+      const breathe = ctx.createOscillator(); breathe.frequency.value = 0.06 + i * 0.017; const bg = ctx.createGain(); bg.gain.value = i === 0 ? 0.012 : 0.009; breathe.connect(bg); bg.connect(g.gain); breathe.start();
+      const oscs = [-4, 4].map(cents => { const o = ctx.createOscillator(); o.type = i === 0 ? 'sine' : 'triangle'; o.frequency.value = hz(semi); o.detune.value = cents; o.connect(g); o.start(); return o; });
+      g.connect(lp);
+      return { g, oscs };
+    });
+    scoreRig = { out, voices };
+    out.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5);
+  }
+  function score(chapter = 0) {
+    if (!enabled || !ctx) { chordNow = -1; return; }
+    startScore();
+    const c = ((chapter % CHORDS.length) + CHORDS.length) % CHORDS.length;
+    if (c === chordNow) return;
+    chordNow = c;
+    const t = ctx.currentTime;
+    scoreRig.voices.forEach((v, i) => { for (const o of v.oscs) o.frequency.setTargetAtTime(hz(CHORDS[c][i]), t + i * 0.12, 0.9); });
+    scoreRig.out.gain.cancelScheduledValues(t); scoreRig.out.gain.setTargetAtTime(0.32, t, 0.3); scoreRig.out.gain.setTargetAtTime(0.5, t + 1.2, 1.2);   // a breath on the change
+  }
   function setEnabled(on) {
     enabled = !!on;
-    if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); startRoom(); tick(0.8); }
+    if (enabled) { if (ensure() && ctx.state === 'suspended') ctx.resume(); startRoom(); startScore(); tick(0.8); }
     else if (ctx && ctx.state === 'running') ctx.suspend();
   }
-  return { knock, coin, tick, whoosh, shutter, lathe: latheSound, setEnabled, get enabled() { return enabled; } };
+  return { knock, coin, tick, whoosh, shutter, score, lathe: latheSound, setEnabled, get enabled() { return enabled; } };
 }

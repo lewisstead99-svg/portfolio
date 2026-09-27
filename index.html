@@ -34,6 +34,7 @@
       <path class="loader__path" pathLength="100" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round" d="M102 22 H181 Q183 22 183 24 H196.65 L199.7 21 L201.38 5 Q201.38 2 198.38 2 H197 Q194 2 194 5 L193.8 7.5 Q193.8 15.5 185.5 15.5 H102 M102 22 H23 Q21 22 21 24 H7.35 L4.3 21 L2.62 5 Q2.62 2 5.62 2 H7 Q10 2 10 5 L10.2 7.5 Q10.2 15.5 18.5 15.5 H102"/>
     </svg>
     <span class="loader__label">Loading <span class="loader__pct" id="loaderPct">0%</span></span>
+    <span class="loader__title">A study by Fabricatr · MMXXVI · Rendered live</span>
   </div>
 
   <!-- One WebGL scene renders the tray for the whole page: it starts as a top-down "photograph" and lifts into the void as you scroll. -->
@@ -54,6 +55,7 @@
       <a href="#features">Features</a>
       <a href="#product">Product</a>
       <a href="#contact">Contact</a>
+      <button class="nav__sound nav__about" type="button" id="aboutOpen" aria-haspopup="dialog" aria-controls="about"><span class="nav__sound-text">About</span></button>
       <button class="nav__sound nav__tour" type="button" id="tour" aria-pressed="false" aria-label="Tour: let the page play itself"><svg class="nav__tour-mark" viewBox="0 0 10 10" width="8" height="8" aria-hidden="true" focusable="false"><path class="nav__tour-play" d="M1 0.5 L9.5 5 L1 9.5z" fill="currentColor"/><path class="nav__tour-stop" d="M1 1h8v8H1z" fill="currentColor"/></svg><span class="nav__sound-text"><span class="nav__tour-off">Tour</span><span class="nav__tour-on">Stop</span></span></button>
       <button class="nav__sound" type="button" id="sound" aria-pressed="false" aria-label="Sound off"><span class="nav__sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="nav__sound-text">Sound <span class="nav__sound-state">off</span></span></button>
     </nav>
@@ -534,7 +536,7 @@
           <a href="https://oryzo.ai" rel="noopener">Reference · oryzo.ai</a>
           <a href="#top">Back to the top</a>
         </nav>
-        <p class="foot__meta">© 2026 Fabricatr · Made in Dorset · HOLM-1<span class="foot__keys"> · Press <kbd>?</kbd> for the keys</span></p>
+        <p class="foot__meta">© 2026 Fabricatr · Made in Dorset · HOLM-1 · <button class="foot__about" type="button" id="aboutOpenFoot">About this piece</button><span class="foot__dwell" id="dwell"></span><span class="foot__keys"> · Press <kbd>?</kbd> for the keys</span></p>
       </div>
       <p class="foot__word" role="img" aria-label="HOLM"><span class="foot__l">H</span><span class="foot__o" aria-hidden="true"></span><span class="foot__l">L</span><span class="foot__l">M</span></p>
     </section>
@@ -543,6 +545,36 @@
 
   <!-- Phones: a slim bar at the bottom carries the offer once the intro has passed -->
   <a class="holdbar" id="holdbar" href="#contact" hidden><span class="holdbar__dot" aria-hidden="true"></span><span id="holdbarText">Twelve left · Hold a number</span><span class="holdbar__arrow" aria-hidden="true">→</span></a>
+
+  <!-- The darkroom: a film grain and a vignette over everything, and the letterbox that closes in for the tour -->
+  <div class="grain" id="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="letterbox letterbox--top" aria-hidden="true"></div>
+  <div class="letterbox letterbox--bottom" aria-hidden="true"><span class="letterbox__cap" id="letterboxCap"></span><span class="letterbox__num" id="letterboxNum"></span></div>
+
+  <!-- The wall label: what this is, how it is made, who made it -->
+  <div class="about" id="about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
+    <div class="about__panel card">
+      <div class="about__head">
+        <p class="label">Wall label</p>
+        <button class="btn btn--ghost btn--tiny" type="button" id="aboutClose">Close</button>
+      </div>
+      <h2 class="about__title" id="aboutTitle">HOLM<span class="about__sub">A study · Fabricatr · 2026</span></h2>
+      <p class="about__lede">Holm is a valet tray that does not exist. This page is a study of the darkroom product editorial: one object in warm darkness, a camera that never cuts, and a page that behaves like a place. It follows the flow of oryzo.ai, designed by Lusion, rebuilt around an original object and written from scratch.</p>
+      <dl class="about__list">
+        <div><dt>One lathe</dt><dd>The tray is a single mesh turned from the 47-point profile on Drawing Nº 01. It is never hidden: every beat has a place for it, and it flies between them along the scroll.</dd></div>
+        <div><dt>No photographs</dt><dd>The walnut, the mat, the brass, the plaster and the stamp are drawn into textures from seeded noise when the page opens. Nothing is downloaded beyond the page itself.</dd></div>
+        <div><dt>No cuts</dt><dd>The camera is a function of the scroll. Flights arc like a carried object and land exactly. Text floats over the object instead of scrolling like a document.</dd></div>
+        <div><dt>Sound, if you want it</dt><dd>Synthesised on the spot: the knock of walnut, the ring of a coin, the lathe, a slow score that changes key with the chapter. Off until you ask.</dd></div>
+        <div><dt>Made with</dt><dd>three.js, Web Audio and 3,900 lines written by hand. Inter stands in for Halyard Display. Palette: walnut shadow, warm cream, ember.</dd></div>
+      </dl>
+      <p class="about__meta legal" id="aboutMeta"></p>
+      <div class="about__actions">
+        <button class="btn btn--ghost" type="button" id="aboutTour">Take the tour</button>
+        <a class="btn btn--filled" href="https://fabricatr.com">Fabricatr</a>
+      </div>
+    </div>
+  </div>
 
   <!-- Keyboard: a small card listing the keys, toggled with ? -->
   <div class="keys card" id="keys" role="dialog" aria-label="Keyboard" hidden>
@@ -555,6 +587,7 @@
       <div><dt><kbd>S</kbd></dt><dd>Sound</dd></div>
       <div><dt><kbd>P</kbd></dt><dd>Tour: the page plays itself</dd></div>
       <div><dt><kbd>C</kbd> <kbd>Space</kbd></dt><dd>Photo mode, expose</dd></div>
+      <div><dt><kbd>I</kbd></dt><dd>About this piece</dd></div>
       <div><dt><kbd>?</kbd> <kbd>Esc</kbd></dt><dd>This card</dd></div>
     </dl>
   </div>
